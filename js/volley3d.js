@@ -39,7 +39,7 @@ export function volleyScene({ T, environment, Sparks, palm, putModel, putAnimate
     for (const sx of [-1, 1]) { for (let row = 0; row < 3; row++) K.box(.8, .4 + row * .45, 12, K.mat(0x9c7b55), sx * (7.6 + row * .8), .2 + row * .22, 0, scene, false);
       for (let k = 0; k < 30; k++) { const row = k % 3, b = K.group(sx * (7.6 + row * .8), .4 + row * .45, -5.5 + Math.floor(k / 3) * 1.2 + r() * .3, scene); K.box(.36, .55, .3, cm[k % cm.length], 0, .3, 0, b); K.ball(.15, K.mat(0xc68a5a), 0, .7, 0, b); crowd.push({ b, ph: r() * 6, y: b.position.y }); } }
     { const st = K.group(-5.4, 0, 0, scene); K.box(.8, 1.6, .8, K.mat(0x8d6e63), 0, .8, 0, st); K.box(1, .1, 1, K.mat(0x6d4c41), 0, 1.65, 0, st); }
-    const sign = textPlane(K, 'PANTAI MIAMI · BOLA TAMPAR PANTAI', 12, 1, { bg: '#d35400', px: 90 }); sign.position.set(0, 3.6, -11.5); scene.add(sign);
+    const sign = textPlane(K, 'PANTAI MIAMI · BOLA TAMPAR', 10, 1.1, { bg: '#d35400', px: 58 }); sign.position.set(0, 3.6, -11.5); scene.add(sign);
     for (const x of [-6, 6]) K.cyl(.06, .06, 3.5, K.mat(0x777777), x, 1.75, -11.5, scene, 6);
     // footprints / landing marks (pooled decals) and sand particles
     const fpM = new T.MeshBasicMaterial({ color: 0xb59366, transparent: true, opacity: .5, depthWrite: false }), prints = []; let fpI = 0;
@@ -262,9 +262,10 @@ export function volleyScene({ T, environment, Sparks, palm, putModel, putAnimate
     const cp = view.pos.clone(), cl = view.look.clone(), tp = new T.Vector3(), tl = new T.Vector3(); let netShake = 0;
     function cam(dt) {
       const bx = B.p.x, bz = B.p.z;
-      if (cfg.cam === 'fixed') { tp.set(0, 7.2, 16.5); tl.set(0, .9, -1.2); }
+      if (cfg.cam === 'fixed') { tp.set(0, 6.5, 19); tl.set(0, .8, -.5); }
       else if (cfg.cam === 'wide') { tp.set(0, 11.5, 19.5); tl.set(0, 0, -1.6); }
-      else { const near = bz > 0 ? 1 : 0, zoom = G.st === 'serve' ? (G.serveTeam === 0 ? -1.2 : .8) : 0; tp.set(bx * .3 + P[0].x * .15, 5.6 + near * .6 + (G.slow > 0 ? -.8 : 0), 14.2 + zoom - near * .6 + (G.slow > 0 ? -2.2 : 0)); tl.set(bx * .35, 1.1 + B.p.y * .12, clamp(bz * .35 - 1.2, -5, 3)); }
+      else { // stays behind our baseline so our own players (and the server behind the line) are always in frame
+        const slow = G.slow > 0, back = Math.max(16.5, Math.max(P[0].z, P[1].z) + 7.5); tp.set(bx * .25 + P[0].x * .15, 5.4 + (slow ? -.8 : 0), back + (slow ? -2 : 0)); tl.set(bx * .3, 1.1 + B.p.y * .1, clamp(bz * .3 - 1.5, -5, 2.2)); }
       if (G.st === 'end') { const a = t * .3; tp.set(Math.sin(a) * 6 + P[0].x, 3, Math.cos(a) * 6 + P[0].z); tl.set(P[0].x, 1.2, P[0].z); }
       const k = 1 - Math.exp(-dt * (cfg.cam === 'dynamic' ? 2.6 : 5)); cp.lerp(tp, k); cl.lerp(tl, k);
       const sh = G.shake > 0 ? G.shake * .15 : 0; view.pos.set(cp.x + (Math.random() - .5) * sh, cp.y + (Math.random() - .5) * sh, cp.z); view.look.copy(cl);
@@ -328,7 +329,7 @@ export function volleyScene({ T, environment, Sparks, palm, putModel, putAnimate
       const mine = G.st === 'serve' && G.serveTeam === 0 && G.server[0] === 0;
       const lab = mine ? ['🏐', G.charging ? 'LEPAS!' : 'SERVIS'] : role === 'bump' ? ['🙌', 'TERIMA'] : role === 'set' ? ['👐', 'SET'] : role === 'spike' ? ['💥', 'REJAM'] : ['🏐', '—'];
       actB.querySelector('i').textContent = lab[0]; actB.querySelector('b').textContent = lab[1]; actB.classList.toggle('dim', lab[1] === '—');
-      const m = q('.vbMeter'); m.classList.toggle('show', mine); if (mine) { m.querySelector('i').style.height = `${G.serveCharge * 100}%`; m.classList.toggle('jumpS', G.serveCharge > .85); }
+      const m = q('.vbMeter'); m.classList.toggle('show', mine && G.charging); if (mine) { m.querySelector('i').style.width = `${G.serveCharge * 100}%`; m.classList.toggle('jumpS', G.serveCharge > .85); }
       const tm = q('.vbTiming'); const showT = role === 'spike' && G.idealJump; tm.classList.toggle('show', !!showT); if (showT) { const left = G.idealJump - t; tm.querySelector('.mk').style.left = `${clamp(50 - left * 60, 0, 100)}%`; }
       jumpB.classList.toggle('hot', role === 'defend' && G.attacker && G.attacker.team === 1 && Math.abs(P[0].z) < 2.2);
       const far = G.st === 'rally' && (role === 'bump' || role === 'set') && G.contact && G.pred && Math.hypot(P[0].x - G.contact.x, P[0].z - G.contact.z) > reach(P[0]) && G.pred.t < 1.0; diveB.hidden = !far;

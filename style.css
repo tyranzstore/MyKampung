@@ -519,9 +519,9 @@ button.big{border:0;border-radius:16px;padding:14px 46px;font-size:22px;font-wei
 .vb .vbAct{right:0;bottom:14px;width:76px;height:76px;border-color:rgba(255,212,82,.95)!important}.vb .vbAct i{font-size:26px!important}.vb .vbAct.dim{opacity:.55}
 .vb .vbJump{right:88px;bottom:0;width:56px;height:56px;border-color:rgba(130,190,255,.9)!important}.vb .vbJump.hot{background:rgba(70,140,255,.45);animation:sfHot .6s infinite alternate}
 .vb .vbDive{right:92px;bottom:70px;width:52px;height:52px;border-color:rgba(255,140,110,.95)!important;background:rgba(255,90,60,.35)!important}.vb .vbDive[hidden]{display:none}
-.vb .vbMeter{position:absolute;right:84px;bottom:12px;width:14px;height:110px;border-radius:7px;background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.4);overflow:hidden;opacity:0;transition:opacity .15s;pointer-events:none}
-.vb .vbMeter.show{opacity:1}.vb .vbMeter i{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(0deg,#2ecc71,#f1c40f 80%,#e74c3c)}
-.vb .vbMeter .ok{position:absolute;left:0;right:0;bottom:85%;height:12%;border-top:2px solid #fff;border-bottom:2px solid #fff;opacity:.8}.vb .vbMeter.jumpS{box-shadow:0 0 10px #ffd452}
+.vb .vbMeter{position:absolute;right:0;bottom:98px;width:150px;height:14px;border-radius:7px;background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.4);overflow:hidden;opacity:0;transition:opacity .15s;pointer-events:none}
+.vb .vbMeter.show{opacity:1}.vb .vbMeter i{position:absolute;left:0;top:0;bottom:0;width:0;background:linear-gradient(90deg,#2ecc71,#f1c40f 80%,#e74c3c)}
+.vb .vbMeter .ok{position:absolute;top:0;bottom:0;left:85%;width:12%;border-left:2px solid #fff;border-right:2px solid #fff;opacity:.8}.vb .vbMeter.jumpS{box-shadow:0 0 10px #ffd452}
 .vb .vbTiming{position:absolute;right:0;bottom:100px;width:160px;height:14px;border-radius:7px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.4);opacity:0;transition:opacity .12s;pointer-events:none}
 .vb .vbTiming.show{opacity:1}.vb .vbTiming .zone{position:absolute;left:39%;width:22%;top:0;bottom:0;background:rgba(46,204,113,.7)}.vb .vbTiming .zone::after{content:'';position:absolute;left:30%;width:40%;top:0;bottom:0;background:#2ecc71}
 .vb .vbTiming .mk{position:absolute;top:-3px;width:4px;height:20px;margin-left:-2px;background:#fff;border-radius:2px;box-shadow:0 0 4px #000}
