@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="ms">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#173b36">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MyKampung">
+<link rel="manifest" href="manifest.json">
+<title>MyKampung</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Nunito:wght@600;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="town"></canvas>
+<canvas id="town3d" hidden></canvas>
+<div id="labels"></div>
+<div id="loading" class="overlay"><div class="card"><h2>MyKampung</h2><p>Memuatkan kampung 3D…<br><small>Loading the 3D village…</small></p><div class="lbar"><i id="loadProg"></i></div></div></div>
+
+<!-- home HUD: one compact status bar, a one-line mission pill, a small action row; the map stays clear -->
+<div id="hudL">
+  <div id="hudC" class="panel"><span id="coins">💵 RM0</span><span id="stars">⭐ 0</span><span id="rank" class="rank"></span><span id="clock"></span>
+    <span class="spiritW" title="Semangat kampung"><span class="spirit"><i id="spiritFill"></i></span><b id="spiritTxt"></b></span></div>
+  <div class="panel" id="missionCard">
+    <div class="kick"><span id="mChap">BAB 1</span> <span id="mProg"></span></div>
+    <div id="mBm"></div><div id="mEn"></div>
+  </div>
+</div>
+<div id="hudB" class="row">
+  <button id="showBtn" class="chip y">➤ Tunjuk misi</button>
+  <button id="dailyBtn" class="chip"></button>
+</div>
+<div id="hudR">
+  <button id="menuBtn" class="ibtn" aria-label="Menu">☰</button>
+  <button id="muteBtn" class="ibtn" aria-label="Sound">🔊</button>
+  <button id="fsBtn" class="ibtn" aria-label="Fullscreen">⛶</button>
+</div>
+<div id="zoom"><button id="zIn" class="ibtn">+</button><button id="zOut" class="ibtn">−</button></div>
+<div id="toast" aria-live="polite"></div>
+
+<div id="dialog" hidden>
+  <div id="dlgAvatar"></div>
+  <div class="dlgText"><div id="dlgName"></div><div id="dlgBm"></div><div id="dlgEn"></div></div>
+  <div class="dlgNext">▶</div>
+</div>
+
+<div id="modal" class="overlay" hidden>
+  <div class="card"><div id="mKicker" class="kick"></div><h2 id="mTitle"></h2><div id="mBody"></div><div id="mBtns" class="btns"></div></div>
+</div>
+
+<div id="game" hidden>
+  <div class="gHead">
+    <button id="gClose" class="ibtn" aria-label="Keluar">✕</button>
+    <div class="gInfo"><div id="gTitle"></div><div id="gStep"></div></div>
+    <div class="gBarWrap"><i id="gBar"></i></div><b id="gPct">0%</b>
+    <div id="gTimer"></div>
+    <button id="gHelp" class="ibtn" aria-label="Cara main">?</button>
+  </div>
+  <canvas id="gcv"></canvas>
+  <canvas id="gcv3"></canvas>
+  <div id="gTools"></div>
+  <div id="rotateHint">📱↻ Pusingkan telefon untuk skrin lebih besar · Rotate your phone for a bigger view</div>
+</div>
+
+<div id="title" class="overlay">
+  <div class="card titleCard">
+    <div class="logo">My<span>Kampung</span></div>
+    <div class="logo2">HIDUPKAN KAMPUNG KITA</div>
+    <p class="tag">Satu kampung, satu semangat.</p>
+    <button id="playBtn" class="big">Main · Play</button>
+    <p class="muted small">Tebas laman, baiki rumah, cuci kereta — hidupkan semula kampung.<br>Cut grass, fix houses, wash cars — bring the village back to life.</p>
+  </div>
+</div>
+
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+HHG Game Development 3D Models Kit License 1.0
+Copyright (c) 2026 Hyper Hollow Games. All rights reserved.
+
+Hyper Hollow Games owns these models. You get a free, worldwide licence to use them on these terms.
+
+You can:
+- use the models in games, apps, videos, renders and prints;
+- use them in commercial projects;
+- change, recolour and combine them.
+
+You can't:
+- sell, share or re-upload the models themselves, changed or not, alone or in an asset pack;
+- use them in a product that imitates a Hyper Hollow Games game, its name or its store page.
+
+Credit: put this in your credits or description:
+  HHG Game Development 3D Models Kit by Hyper Hollow Games (hyperhollowgames.net/3d-models-kit)
+
+The models come as they are, with no warranty. Our game names and logos are not part of this licence.
+Full text: https://hyperhollowgames.net/3d-models-kit/license

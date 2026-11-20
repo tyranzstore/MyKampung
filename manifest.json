@@ -1,0 +1,10 @@
+{
+ "name": "MyKampung \u2014 TYRANZ Kampung Heroes",
+ "short_name": "MyKampung",
+ "start_url": ".",
+ "display": "fullscreen",
+ "orientation": "landscape",
+ "background_color": "#173b36",
+ "theme_color": "#173b36",
+ "icons": []
+}
