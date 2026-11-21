@@ -65,6 +65,14 @@ export function tutorial(kind, api, auto) {
   el.hidden = false; api.pause && api.pause(true);
   $('tutGo').onclick = () => { sfx.tap(); el.hidden = true; seen[kind] = true; save(); api.pause && api.pause(false); };
 }
+// Stop a mini-game's clock while the phone shows another app, so a call or app switch doesn't cost stars.
+// Only undoes a pause it made itself (the tutorial card has its own). Returns the cleanup.
+export function pauseWhenHidden(api, doc = document) {
+  let mine = false;
+  const on = () => { if (doc.hidden) { if (!api.isPaused()) { api.pause(true); mine = true; } } else if (mine) { mine = false; api.pause(false); } };
+  doc.addEventListener('visibilitychange', on);
+  return () => doc.removeEventListener('visibilitychange', on);
+}
 export function setupHelp(kind, api) {
   const b = $('gHelp'); if (b) { b.hidden = !TUTORIAL[kind]; b.onclick = () => { sfx.tap(); tutorial(kind, api, false); }; }
   tutorial(kind, api, true);
@@ -105,12 +113,13 @@ export function runGame(kind, opts = {}) {
       tools(list) { const t = $('gTools'); t.innerHTML = ''; for (const it of list) { const b = document.createElement('button'); b.innerHTML = it.html; if (it.sel) b.classList.add('sel'); if (it.on) b.onclick = () => it.on(b); else b.disabled = true; t.append(b); } },
       elapsed() { const n = performance.now(); return (n - tStart - paused - (pauseAt ? n - pauseAt : 0)) / 1000; },
       pause(on) { if (on) { if (!pauseAt) pauseAt = performance.now(); } else if (pauseAt) { paused += performance.now() - pauseAt; pauseAt = 0; } },
+      isPaused: () => !!pauseAt,
       finish(result) { if (!alive) return; const time = api.elapsed(); bar.full(); finishing = true; setTimeout(() => { if (!alive) return; alive = false; cleanup(); resolve({ ...result, time }); }, 700); },
     };
     $('gTitle').textContent = ({ grass: 'Tebas Laman', repair: 'Baiki Rumah', carwash: 'Cuci Kereta', padi: 'Tuai Padi', boat: 'Baiki Bot', fish: 'Memancing', beach: 'Bersih Pantai', futsal3v3: 'Perlawanan 3v3 · Futsal' }[kind] || (ACTIVITIES[kind] || {}).title);
     $('gTools').innerHTML = ''; bar.reset();
     const game = { grass: Grass, repair: Repair, carwash: CarWash, padi: Padi, boat: Boat, fish: Fishing, beach: Beach, futsal: Futsal, volley: Volley, photo: Photo, drag: Drag, market: Market, mall: Mall, futsal3v3: Futsal3v3 }[kind](api, opts);
-    window.__mg = game; setupHelp(kind, api);
+    window.__mg = game; setupHelp(kind, api); const unHide = pauseWhenHidden(api);
     const down = (e) => { e.preventDefault(); if (finishing) return; cv.setPointerCapture(e.pointerId); const p = toV(e); Object.assign(ptr, p, { down: true, px: p.x, py: p.y, lx: p.x, ly: p.y, mv: 0, moved: 0 }); framesDown = 0; upPending = false; game.down && game.down(ptr); };
     const move = (e) => { const p = toV(e); ptr.px = ptr.x; ptr.py = ptr.y; ptr.x = p.x; ptr.y = p.y; if (ptr.down) ptr.moved += Math.hypot(ptr.x - ptr.px, ptr.y - ptr.py); game.move && game.move(ptr); };
     let framesDown = 0, upPending = false;
@@ -119,7 +128,7 @@ export function runGame(kind, opts = {}) {
     cv.addEventListener('pointerdown', down); cv.addEventListener('pointermove', move); cv.addEventListener('pointerup', upE); cv.addEventListener('pointercancel', upE);
     $('gClose').onclick = () => { if (!alive) return; alive = false; cleanup(); resolve(null); };
     function cleanup() {
-      ov.hidden = true; hideTutorial(); removeEventListener('resize', fit); game.stop && game.stop();
+      ov.hidden = true; hideTutorial(); removeEventListener('resize', fit); game.stop && game.stop(); unHide();
       cv.removeEventListener('pointerdown', down); cv.removeEventListener('pointermove', move); cv.removeEventListener('pointerup', upE); cv.removeEventListener('pointercancel', upE);
     }
     function loop(now) {

@@ -67,6 +67,13 @@ at 30 fps.
 Clips with other names are allowed but unused (warning). Names like `Idle` or `mixamo.com|Walk` fail —
 rename them exactly as above.
 
+## Static (unrigged) NPC models
+Detailed NPCs without a rig (for example Pok Ajis, made in Tripo) use the `staticNpc` profile:
+the same file, triangle, texture and memory limits, but no rig or clips are required and any height is accepted
+(the game sets the height in code). Shrink oversized textures with
+`python3 tools/glb_resize_textures.py SOURCE.glb OUTPUT.glb --max 1024` — only the image is re-encoded.
+Keep the original next to it as `*_source.glb` for future upgrades.
+
 ## How to check a file
 ```
 node tools/check_glb.mjs assets/tyranz/TokAbah.glb
@@ -86,7 +93,7 @@ WARN items are allowed but should be fixed if easy. Any FAIL blocks the integrat
 | Tok Abah | `abah` — Tok Abah | matches |
 | Nek Ma | `kiah` — Nek Ma | matches |
 | Pok Wan | `din` — Pok Wan | matches |
-| Pok Ajis | `abu` — **Pak Ajis** | spelling differs — rename only with approval |
+| Pok Ajis | `abu` — Pok Ajis | renamed from "Pak Ajis" (display name only); static GLB model `assets/characters/pok_ajis/PokAjis.glb` |
 | Cikgu Eby | `ani` — **Cikgu Aqilah** | different name — confirm whether this is the same character |
 | Mok Ngoh, Mok Yah, Yaya, Seola, Taeyang | — | not in the game yet |
 

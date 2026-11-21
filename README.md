@@ -229,7 +229,17 @@ Serve the folder over HTTP (`python -m http.server 8000`), or drag the unzipped 
 - **New mini-game**: write a function like `Grass(api, opts)` returning `{down, move, up, update, draw}` and register it in `runGame`
 
 ## Not yet built (next steps)
-Chapter 4 (futsal, karaoke, village festival), jet ski, snooker, shops and spending coins, house decoration, character customisation, accounts and cloud save, online player counts, leaderboards and multiplayer. The online features need a backend (for example Supabase or Firebase).
+Chapter 4 (futsal, karaoke, village festival), jet ski, snooker, shops and spending coins, house decoration, character customisation, online player counts, leaderboards and multiplayer gameplay. Sign-in, cloud save and rooms now have client code and a Supabase schema, but they are **off until a backend is configured**: see `docs/MULTIPLAYER.md`.
+
+## New 3D models (GLB packs)
+Upload a folder of `.glb` files to `assets/packs/` through GitHub. A workflow validates them and indexes them, and the game loads them on demand. See `docs/GLB_PACKS.md`.
+
+## Tests
+Run every suite from the project root (Node 18+, no install needed):
+
+```bash
+for f in test/*/*.mjs; do node "$f" || echo "FAILED: $f"; done
+```
 
 ## Credits (required for the HHG models)
 - 3D models: Kenney — City Kit (Suburban), City Kit (Roads), Car Kit (CC0), kenney.nl

@@ -39,7 +39,7 @@ export const NPCS = {
   hassan: { name: 'Pak Hassan', initial: 'PH', color: '#6b8e23', i: 8.6, j: 19.2, look: { shirt: '#8d6e63', pants: '#4e342e', skin: '#9c6b44', cap: '#d9b36c' } },
   lim: { name: 'Uncle Lim', initial: 'UL', color: '#c0392b', i: 17.3, j: 8.3, look: { shirt: '#ecf0f1', pants: '#34495e', skin: '#e0b08a', hair: '#333' } },
   ani: { name: 'Cikgu Aqilah', initial: 'CQ', color: '#8e44ad', i: 13.4, j: 22.5, look: { shirt: '#a3cbe8', pants: '#2c3e50', skin: '#c78b5a', tudung: '#1f6f9c' } },
-  abu: { name: 'Pak Ajis', initial: 'PA', color: '#2c3e50', i: 25.6, j: 26.2, look: { shirt: '#95a5a6', pants: '#2c3e50', skin: '#a8703e', songkok: true } },
+  abu: { name: 'Pok Ajis', initial: 'PA', color: '#2c3e50', i: 25.6, j: 26.2, look: { shirt: '#95a5a6', pants: '#2c3e50', skin: '#a8703e', songkok: true } },
   kaklong: { name: 'Kak Long', initial: 'KL', color: '#d35400', i: 24.6, j: 4.3, look: { shirt: '#f6a5c0', pants: '#6c3483', skin: '#c68a5a', tudung: '#d35400' } },
   mat: { name: 'Pak Mat', initial: 'PM', color: '#d35400', i: 11.7, j: 4.4, look: { shirt: '#f39c12', pants: '#34495e', skin: '#8d5a34', cap: '#ecf0f1', beard: true } },
 };
@@ -257,7 +257,7 @@ export function createTown(canvas, hooks) {
   const OBJ = [
     { id: 'house_abah', kind: 'house', i: 8, j: 8, w: 3, d: 3, stilt: 16, wall: '#c48a58', roof: '#8a4b33', door: true, label: 'Rumah Tok Abah' },
     { id: 'house_ani', kind: 'house', i: 10, j: 20, w: 3, d: 3, stilt: 14, wall: '#a9d8b8', roof: '#b24a3c', door: true, label: 'Rumah Cikgu Aqilah' },
-    { id: 'house_abu', kind: 'house', i: 22, j: 24, w: 3, d: 3, stilt: 14, wall: '#8fc1d4', roof: '#4f6f8f', door: true, label: 'Rumah Pak Ajis' },
+    { id: 'house_abu', kind: 'house', i: 22, j: 24, w: 3, d: 3, stilt: 14, wall: '#8fc1d4', roof: '#4f6f8f', door: true, label: 'Rumah Pok Ajis' },
     { id: 'house_x1', kind: 'house', i: 3, j: 9, w: 3, d: 3, stilt: 14, wall: '#f3d08a', roof: '#9d433c', door: true },
     { id: 'house_x2', kind: 'house', i: 25, j: 14, w: 3, d: 2, stilt: 12, wall: '#f4e6cb', roof: '#8a4b33', door: true },
     { id: 'house_x3', kind: 'house', i: 3, j: 13, w: 2, d: 2, stilt: 12, wall: '#e8b4b8', roof: '#4f6f8f', door: true },
@@ -342,7 +342,7 @@ export function createTown(canvas, hooks) {
     sc.fillStyle = '#e1b84f'; sc.beginPath(); sc.arc(sp.x, sp.y - 32, 6, 0, 7); sc.fill(); sc.fillStyle = '#c0392b'; sc.fillRect(sp.x - 6, sp.y - 26, 12, 9);
     // Pantai Miami corner: keropok lekor stall, umbrellas and a small Jambatan Angkat
     { const st = P(23.6, 3.6); sc.fillStyle = '#b07e52'; sc.fillRect(st.x - 18, st.y - 16, 36, 14); sc.fillStyle = '#d35400'; sc.beginPath(); sc.moveTo(st.x - 24, st.y - 16); sc.lineTo(st.x, st.y - 30); sc.lineTo(st.x + 24, st.y - 16); sc.fill(); sc.fillStyle = '#fff'; sc.font = '800 8px system-ui'; sc.textAlign = 'center'; sc.fillText('LEKOR', st.x, st.y - 6);
-      for (const [i, j, c] of [[22, 1.6, '#e74c3c'], [25.2, 1.2, '#f1c40f'], [26.6, 2.4, '#2e86de']]) { const u = P(i, j); line(sc, u, { x: u.x, y: u.y - 16 }, '#ddd', 2); sc.fillStyle = c; sc.beginPath(); sc.moveTo(u.x - 12, u.y - 14); sc.lineTo(u.x, u.y - 22); sc.lineTo(u.x + 12, u.y - 14); sc.fill(); }
+      for (const [i, j, c] of [[21.4, 1.4, '#e74c3c'], [22.4, 1.1, '#f1c40f'], [25.6, 1.3, '#2e86de']]) { const u = P(i, j); line(sc, u, { x: u.x, y: u.y - 16 }, '#ddd', 2); sc.fillStyle = c; sc.beginPath(); sc.moveTo(u.x - 12, u.y - 14); sc.lineTo(u.x, u.y - 22); sc.lineTo(u.x + 12, u.y - 14); sc.fill(); }
       const tw = (i, j) => { const p = P(i, j); sc.fillStyle = '#efe7d4'; sc.fillRect(p.x - 5, p.y - 58, 10, 58); sc.fillStyle = '#2c8c99'; sc.beginPath(); sc.moveTo(p.x - 7, p.y - 58); sc.lineTo(p.x, p.y - 70); sc.lineTo(p.x + 7, p.y - 58); sc.fill(); sc.fillStyle = '#d4a437'; sc.fillRect(p.x - 6, p.y - 40, 12, 3); return p; };
       const a = tw(28.4, 1.2), b = tw(28.4, 2.8), c2 = tw(29.4, 1.2), d = tw(29.4, 2.8); line(sc, { x: a.x, y: a.y - 46 }, { x: b.x, y: b.y - 46 }, '#4f88a8', 4); line(sc, { x: c2.x, y: c2.y - 46 }, { x: d.x, y: d.y - 46 }, '#4f88a8', 4);
       line(sc, P(27.4, 2), P(30.4, 2), '#9a948a', 5); }
@@ -352,7 +352,7 @@ export function createTown(canvas, hooks) {
   const AREAS = {
     yard_abah: YARDS.abah, yard_ani: YARDS.ani, yard_abu: YARDS.abu, padi: PADI,
     jeti: { i0: 9, j0: 0, i1: 12.5, j1: 5 },
-    pantai: { i0: 21, j0: 0, i1: 27.5, j1: 4.6 }, jambatan: { i0: 27.5, j0: 0, i1: 30, j1: 4 },
+    pantai: { i0: 21, j0: 0, i1: 26.5, j1: 4.6 }, jambatan: { i0: 27.5, j0: 0, i1: 30, j1: 4 }, // 1-tile gap: the bridge stands apart in the corner
   };
   function anchor(id) {
     if (NPCS[id]) { const p = P(NPCS[id].i, NPCS[id].j); return { x: p.x, y: p.y - 42 }; }

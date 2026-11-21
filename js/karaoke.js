@@ -31,7 +31,7 @@ export function runKaraoke(opts = {}) {
     // ---- DOM
     const el = document.createElement('div'); el.id = 'karaoke'; document.body.append(el);
     el.innerHTML = `<div class="kStage"><div class="kLights"><i></i><i></i><i></i></div><div class="kBanner">🎤 KARAOKE BALAI RAYA · PESTA KAMPUNG</div>
-      <div class="kSinger">🧑‍🎤</div><div class="kBand"><span>🎸<small>Pak Ajis</small></span><span>🥁</span><span>🎹</span></div><div class="kCrowd"></div></div>
+      <div class="kSinger">🧑‍🎤</div><div class="kBand"><span>🎸<small>Pok Ajis</small></span><span>🥁</span><span>🎹</span></div><div class="kCrowd"></div></div>
       <div class="kTop"><button class="kX" aria-label="Keluar">✕</button><div class="kSong">♪ ${SONG.bm} <small>lagu asal · original song</small></div><div class="kScore"><b>0</b><small>markah</small></div><div class="kCombo"></div></div>
       <div class="kLyric"><div class="bm"></div><div class="en"></div></div>
       <div class="kHwy"><div class="lanes"><i></i><i></i><i></i></div><div class="notes"></div><div class="line"></div>

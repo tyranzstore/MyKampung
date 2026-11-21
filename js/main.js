@@ -6,6 +6,7 @@ import { runGame3D, has3D } from './minigames3d.js';
 import { ACTIVITIES } from './activities.js';
 import { earn, fmtRM, balance } from './wallet.js';
 import { runKaraoke } from './karaoke.js';
+import * as online from './online.js';
 
 const TOWN = 'Kampung Seri Damai';
 checkDaily();
@@ -46,7 +47,7 @@ const CHAPTERS = [
   ], intro: ['Jalan baru ke Pantai Miami dah dibuka. Di hujung pantai, Jambatan Angkat berdiri megah di muara sungai.', 'A new road to Pantai Miami has opened. At the far end of the beach, the drawbridge stands proudly over the river mouth.'] },
   { n: 5, bm: 'Pesta Kampung', en: 'Village Festival', missions: [
     { bm: 'Sembang dengan Tok Abah', en: 'Talk to Tok Abah', target: 'abah' },
-    { bm: 'Jumpa Pak Ajis di Balai Raya', en: 'Meet Pak Ajis at the community hall', target: 'balai' },
+    { bm: 'Jumpa Pok Ajis di Balai Raya', en: 'Meet Pok Ajis at the community hall', target: 'balai' },
     { bm: 'Beli barang pesta di Damai City Mall', en: 'Buy festival supplies at Damai City Mall', target: 'mall' },
     { bm: 'Bantu Nek Ma masak untuk kenduri', en: 'Help Nek Ma cook for the feast', target: 'kiah' },
     { bm: 'Karaoke di Balai Raya', en: 'Sing karaoke at the community hall', target: 'balai' },
@@ -55,7 +56,7 @@ const CHAPTERS = [
 ];
 const NEXT = { n: 6, bm: 'Balik Raya', en: 'Home for Raya', teaser: 'Lemang, pelita dan rumah terbuka. · Lemang, oil lamps and open house.' };
 const INVITE = ['amin', 'ani', 'abu'];
-const AJIS = NPCS.abu; // Pak Ajis leads the festival committee
+const AJIS = NPCS.abu; // Pok Ajis leads the festival committee
 function fireworks() { if (town.fireworks) town.fireworks(14); toast('🎆 Bunga api di langit Kampung Seri Damai!', 'Fireworks over Kampung Seri Damai!'); sfx.cheer && sfx.cheer(); }
 // save migration: older saves only knew chapter 1
 if (!S.chapter) S.chapter = 1;
@@ -72,101 +73,107 @@ const at = (ch, m) => S.chapter === ch && S.mission === m;
 const targetOf = (m) => m.target === 'invite' ? (INVITE.find(id => !S.invited.includes(id)) || 'hassan') : m.target;
 
 const LINES = {
-  abah0: [['Eh, cucu dah balik! Lama Tok tunggu.', "Oh, you're back! I've waited so long."],
-    ['Sejak budak-budak muda pergi bandar, kampung ni makin sunyi.', 'Since the young ones left for the city, the village has gone quiet.'],
-    ['Rumput laman Tok pun dah paras lutut. Tolong tebaskan, ya?', 'Even my yard grass is knee-high. Could you cut it for me?']],
-  abah2: [['Kemas dah laman! Tapi tengoklah rumah Tok ni…', 'The yard looks neat! But look at my house…'],
-    ['Cat dah mengelupas, zink bumbung pun bocor.', 'The paint is peeling and the zinc roof leaks.'],
+  // ---- Bab 1 · Tok Abah (warm, a little nostalgic, calls the player "cucu"), Nek Ma (feeds everyone), Pok Wan (car wash, bad back)
+  abah0: [['Eh, cucu Tok dah balik! Lama Tok tunggu, tau.', "Hey, you're home! I've been waiting a long time, you know."],
+    ['Sejak orang muda pindah ke bandar, kampung ni sunyi sangat.', 'Since the young people moved to the city, the village has gone so quiet.'],
+    ['Rumput laman Tok pun dah sampai lutut. Tolong tebaskan, boleh?', 'My yard grass is up to my knees now. Can you cut it for me?']],
+  abah2: [['Haa, kemas dah laman! Tapi cuba tengok rumah Tok ni…', 'There, the yard looks tidy! But take a look at my house…'],
+    ['Cat dah mengelupas, zink pun bocor. Hujan sikit, basah satu rumah.', 'The paint is peeling and the zinc roof leaks. A bit of rain and the whole house gets wet.'],
     ['Ketik rumah Tok untuk mula baiki.', 'Tap my house to start the repairs.']],
-  abah3: [['MasyaAllah, cantiknya rumah Tok! Macam baru.', 'Wow, my house looks brand new!'],
-    ['Pergilah jumpa Nek Ma di warung. Dia ada cerita.', 'Go see Nek Ma at her stall. She has news.']],
-  kiah: [['Ya Allah, kamu dah besar! Duduk, minum teh dulu.', "Goodness, you've grown! Sit, have some tea."],
-    ['Pok Wan kat kedai cuci kereta tu sakit pinggang. Kereta pelanggan bersusun.', "Pok Wan at the car wash hurt his back. Cars are piling up."],
-    ['Tolong dia sekejap? Kedai dia di simpang jalan, sebelah kanan.', "Could you help him? His shop is at the crossroads, on the right."]],
-  din: [['Berkilat! Macam kereta baru keluar kedai.', 'Spotless! Like it just left the showroom.'],
-    ['Esok datang lagi. Ada saja kereta nak dicuci — Pok Wan bayar upah.', "Come back tomorrow. There's always a car to wash — I'll pay you."]],
-  abah5: [['Satu kampung bercakap pasal kamu hari ni.', 'The whole village is talking about you today.'],
-    ['Kampung ni boleh hidup balik kalau orang muda macam kamu ada.', 'This village can come alive again with young people like you.'],
-    ['Esok musim menuai. Sawah padi tu tunggu kamu!', "Tomorrow is harvest season. The padi fields are waiting for you!"]],
-  // ---- Bab 2
-  abah_b2: [['Assalamualaikum, cucu. Tengok sawah tu — dah menguning!', 'Peace be upon you. Look at the field — it has turned gold!'],
-    ['Pak Hassan tanam padi tu seorang diri. Anak-anak dia semua kerja di bandar.', 'Pak Hassan planted it all by himself. His children all work in the city.'],
-    ['Dia dah tak larat nak tuai seorang. Pergilah tolong dia di sawah.', "He can't harvest it alone anymore. Go and help him at the field."]],
-  hassan1: [['Ha, ni cucu Tok Abah yang orang kampung puji tu!', "Ah, so you're Tok Abah's grandchild everyone is praising!"],
-    ['Dah lama tak ada orang muda turun sawah. Pak Hassan tuai cara lama — guna sabit.', "It's been ages since young folk came to the field. I harvest the old way — with a sickle."],
-    ['Tuai rumpun padi, kumpul berkas atas tikar, lepas tu banting dalam tong. Ketik sawah untuk mula!', 'Cut the clumps, gather the bundles on the mat, then thresh them in the tub. Tap the field to start!']],
-  hassan2: [['Alhamdulillah, berkat! Penuh tong tu dengan padi.', 'Thank God, what a blessing! The tub is full of grain.'],
-    ['Lepas dikisar, dapatlah beras. Bawa ke kedai Uncle Lim — dia beli dengan harga elok.', "Once milled, that's our rice. Take it to Uncle Lim's shop — he pays a fair price."]],
-  lim: [['Wah, beras baru dari sawah Pak Hassan? Wangi betul!', "Wow, new rice from Pak Hassan's field? It smells wonderful!"],
-    ['Uncle beli semua, ya. Beras kampung, orang bandar pun cari.', 'I\'ll buy it all. Even city folk look for kampung rice.'],
-    ['Eh, Nek Ma cakap Pak Hassan nak buat kenduri kesyukuran. Pergilah jemput orang kampung!', 'Oh, Nek Ma says Pak Hassan is holding a thanksgiving feast. Go invite the villagers!']],
-  inv_amin: [['Kenduri? Ada ayam masak merah tak? Amin datang!', "A feast? Will there be chicken masak merah? I'm coming!"]],
+  abah3: [['MasyaAllah, cantiknya rumah Tok! Macam baru siap.', 'MasyaAllah, my house looks brand new!'],
+    ['Pergi jumpa Nek Ma di warung. Dia ada cerita nak kongsi.', "Go and see Nek Ma at her warung. She's got news for you."]],
+  kiah: [['Ya Allah, besarnya kamu! Duduk dulu, Nek buatkan teh.', "Goodness, look how you've grown! Sit down, I'll make you some tea."],
+    ['Kesian Pok Wan, sakit pinggang. Kereta orang dah beratur depan kedai dia.', 'Poor Pok Wan has hurt his back, and cars are lining up outside his shop.'],
+    ['Tolong dia sekejap? Kedai dia di simpang jalan, sebelah kanan.', 'Could you give him a hand? His shop is at the junction, on the right.']],
+  din: [['Fuh, berkilat! Macam baru keluar showroom.', 'Wow, spotless! Like it just rolled out of the showroom.'],
+    ['Esok datang lagi, ya. Kereta tak pernah habis. Pok Wan bayar upah, jangan risau.', "Come again tomorrow. There's always another car, and I'll pay you, don't worry."]],
+  abah5: [['Satu kampung sebut nama kamu hari ni.', 'The whole village has been talking about you today.'],
+    ['Kalau ada orang muda macam kamu, kampung ni boleh hidup balik.', 'With young people like you around, this village can come back to life.'],
+    ['Esok musim menuai. Sawah padi tu tunggu kamu!', 'Harvest season starts tomorrow. The padi field is waiting for you!']],
+  // ---- Bab 2 · Pak Hassan (old-school padi farmer), Uncle Lim (shopkeeper since 1985, mixes in English)
+  abah_b2: [['Assalamualaikum, cucu. Tengok sawah tu, dah kuning macam emas!', 'Assalamualaikum, grandchild. Look at the field, it has turned gold!'],
+    ['Pak Hassan tanam semua tu seorang diri. Anak-anak dia kerja di bandar.', 'Pak Hassan planted all of it by himself. His children work in the city.'],
+    ['Dia dah tak larat nak tuai seorang. Pergilah tolong dia di sawah.', "He can't manage the harvest alone anymore. Go and help him at the field."]],
+  hassan1: [['Ha, ni cucu Tok Abah yang orang kampung puji tu!', "Ah, so you're the grandchild of Tok Abah everyone keeps praising!"],
+    ['Lama dah tak ada orang muda turun sawah. Pak Hassan tuai cara lama, guna sabit.', "Young people haven't come down to the field in ages. I still harvest the old way, with a sickle."],
+    ['Potong rumpun padi, kumpul atas tikar, lepas tu banting dalam tong. Ketik sawah untuk mula!', 'Cut the clumps, gather them on the mat, then thresh them in the tub. Tap the field to start!']],
+  hassan2: [['Alhamdulillah, penuh tong! Ini rezeki tahun ni.', "Alhamdulillah, the tub is full! That's this year's blessing."],
+    ['Lepas dikisar, jadilah beras. Bawa ke kedai Uncle Lim, dia bagi harga elok.', "Once it's milled, that's our rice. Take it to Uncle Lim's shop. He'll give you a fair price."]],
+  lim: [['Wah, beras baru dari sawah Pak Hassan? Wangi betul ah!', "Wah, new rice from Pak Hassan's field? It smells so good!"],
+    ['Uncle ambil semua. Beras kampung, orang KL pun cari tau.', "I'll take all of it. Even people in KL go looking for kampung rice."],
+    ['Eh, Nek Ma cakap Pak Hassan nak buat kenduri kesyukuran. Pergi jemput orang kampung!', 'Oh, Nek Ma says Pak Hassan is having a thanksgiving feast. Go and invite the villagers!']],
+  inv_amin: [['Kenduri? Ada ayam masak merah tak? Amin confirm datang!', "A feast? Is there ayam masak merah? I'm definitely coming!"]],
   inv_ani: [['Terima kasih jemput Cikgu. Nanti Cikgu bawa kuih seri muka, ya.', "Thank you for inviting me. I'll bring some kuih seri muka."]],
-  inv_abu: [['InsyaAllah, Pak Ajis datang lepas Asar. Bawa gitar sekali!', "God willing, I'll come after Asar prayers. I'll bring my guitar!"]],
-  hassan5: [['Ramai betul yang datang! Dah lama sawah ni tak meriah macam ni.', "So many people came! It's been years since this field was this lively."],
-    ['Terima kasih, nak. Kau dah hidupkan semula semangat bertani kampung ni.', "Thank you, child. You've brought farming back to life in this village."],
-    ['Mulai esok, datanglah tuai padi bila-bila. Pak Hassan bayar upah!', "From tomorrow, come and harvest any time. I'll pay you for it!"]],
-  // ---- Bab 3
-  abah_b3: [['Cucu, Tok ada kawan lama — Pak Mat, nelayan di jeti.', 'Grandchild, I have an old friend — Pak Mat, the fisherman at the jetty.'],
-    ['Dulu sepuluh bot turun ke laut setiap subuh. Sekarang tinggal bot dia seorang.', 'Ten boats used to go out every dawn. Now only his is left.'],
-    ['Bot dia pun dah bocor. Pergilah jumpa dia di jeti.', "And his boat is leaking. Go and see him at the jetty."]],
-  mat1: [['Hah, cucu Abah! Mari, mari. Tengok bot Pak Mat ni…', "Ah, Abah's grandchild! Come here. Look at my boat…"],
-    ['Penuh teritip, papan pun dah berlubang. Dah sebulan tak turun laut.', "Covered in barnacles and the planks have holes. I haven't been to sea for a month."],
-    ['Kikis teritip, tampal lubang, cat semula. Ketik jeti untuk mula!', 'Scrape the barnacles, patch the holes, repaint it. Tap the jetty to start!']],
-  mat2: [['MasyaAllah, cantiknya! Bot Pak Mat macam baru keluar limbungan.', 'Beautiful! My boat looks fresh out of the boatyard.'],
-    ['Air pasang dah naik. Naik bot, kita ke tengah laut!', "The tide is in. Hop on the boat, we're heading out to sea!"],
-    ['Pantai untuk ikan harian, terumbu karang untuk ikan jarang, laut dalam kalau berani — tuna sirip kuning ada di sana!', 'The shallows for everyday fish, the reef for rare ones, the deep sea if you dare — yellowfin tuna live out there!'],
+  inv_abu: [['InsyaAllah, lepas Asar Pok Ajis sampai. Gitar pun Pok bawa!', "InsyaAllah, I'll be there after Asar. I'm bringing my guitar too!"]],
+  hassan5: [['Ramainya orang datang! Lama dah sawah ni tak meriah macam ni.', "So many people came! This field hasn't been this lively in years."],
+    ['Terima kasih, nak. Kamu buat orang kampung sayang sawah semula.', 'Thank you, nak. You made the village love the padi field again.'],
+    ['Mulai esok, datanglah tuai bila-bila. Pak Hassan bayar upah!', "From tomorrow, come and harvest any time. I'll pay you!"]],
+  // ---- Bab 3 · Pak Mat (quiet fisherman, talks about the sea)
+  abah_b3: [['Cucu, Tok ada kawan lama, Pak Mat. Dia nelayan di jeti.', 'Grandchild, I have an old friend, Pak Mat. He fishes from the jetty.'],
+    ['Dulu sepuluh bot keluar ke laut setiap subuh. Sekarang tinggal bot dia sorang.', 'Ten boats used to head out every dawn. Now his is the only one left.'],
+    ['Bot dia pun dah bocor. Pergilah jumpa dia di jeti.', 'And now his boat is leaking. Go and see him at the jetty.']],
+  mat1: [['Hah, cucu Abah! Mari, mari. Tengok bot Pak Mat ni…', "Ah, Abah's grandchild! Come over here. Have a look at my boat…"],
+    ['Penuh teritip, papan pun dah berlubang. Dah sebulan Pak Mat tak turun laut.', "It's covered in barnacles and the planks have holes. I haven't been to sea for a month."],
+    ['Kikis teritip, tampal lubang, cat semula. Ketik jeti untuk mula!', 'Scrape off the barnacles, patch the holes, then repaint. Tap the jetty to start!']],
+  mat2: [['MasyaAllah, cantiknya! Macam bot baru keluar limbungan.', 'MasyaAllah, beautiful! It looks fresh out of the boatyard.'],
+    ['Air dah pasang. Jom naik bot, kita ke tengah laut!', "The tide's in. Hop on, we're heading out to sea!"],
+    ['Tepi pantai ikan biasa, terumbu ikan jarang. Laut dalam ada tuna sirip kuning, kalau berani!', "The shallows have everyday fish and the reef has rare ones. Out in the deep there's yellowfin tuna, if you dare!"],
     ['Ketik jeti bila dah sedia.', "Tap the jetty when you're ready."]],
-  mat3: [['Rezeki laut! Banyak juga kau dapat.', "The sea's bounty! You caught quite a lot."],
-    ['Bawa ikan ni ke warung Nek Ma. Dia selalu cari ikan segar untuk ikan bakar.', 'Take these to Nek Ma. She always wants fresh fish for her ikan bakar.']],
-  kiah3: [['Ikan segar dari laut kita sendiri! Dah lama Nek tak dapat ikan macam ni.', "Fresh fish from our own sea! I haven't had fish like this in ages."],
-    ['Malam ni Nek buat ikan bakar. Orang kampung mesti datang ramai!', "Tonight I'll make ikan bakar. The whole village will come!"]],
-  kiah3b: [['Eh, Pak Mat ada cerita nak beritahu kamu. Pergilah ke jeti.', 'Oh, Pak Mat has something to tell you. Go to the jetty.']],
-  abah_b5: [['Cucu, kampung kita dah lain sekarang. Sawah menguning, jeti riuh, pantai bersih — semua sebab kamu.', 'Grandchild, our village is different now. The padi is golden, the jetty is busy, the beach is clean — all because of you.'],
-    ['Orang kampung nak buat Pesta Kampung di Balai Raya Sabtu ni. Pak Ajis jadi ketua jawatankuasa.', 'The villagers want to hold a Village Festival at the community hall this Saturday. Pak Ajis is leading the committee.'],
-    ['Pergilah ke Balai Raya, tolong dia. Ketik Balai Raya di peta.', 'Go to the community hall and help him. Tap the Balai Raya on the map.']],
-  ajis1: [['Hah, sampai pun! Pak Ajis dah lama tunggu. Balai ni dah dihias sikit — tapi barang pesta tak cukup lagi.', "Ah, you're here! I've been waiting. The hall is half decorated — but we still need supplies."],
-    ['Pergi ke Damai City Mall, beli barang dalam senarai. Lepas tu tolong Nek Ma masak untuk kenduri.', 'Go to Damai City Mall and buy what is on the list. Then help Nek Ma cook for the feast.'],
-    ['Malam nanti ada karaoke — Pak Ajis main gitar, kamu menyanyi!', "Tonight there's karaoke — I'll play guitar and you'll sing!"]],
-  mall5: [['Lengkap! Pelita, kain rentang, pinggan, minuman — semua ada.', 'All done! Lamps, banners, plates, drinks — everything.'], ['Sekarang pergi ke warung Nek Ma. Dia perlukan tangan tambahan di dapur.', "Now go to Nek Ma's stall. She needs an extra pair of hands in the kitchen."]],
-  kiah5: [['Kenduri besar malam ni! Nasi minyak, ayam masak merah, satay, apam balik…', "A big feast tonight! Nasi minyak, ayam masak merah, satay, apam balik…"], ['Tolong Nek layan pelanggan di gerai makanan pesta. Cepat dan tepat, ya!', 'Help me serve customers at the festival food stalls. Quick and correct!']],
-  kiah5b: [['Sedap! Semua orang kenyang. Pergilah ke Balai Raya — karaoke dah nak mula!', "Delicious! Everyone's full. Go to the community hall — karaoke is about to start!"]],
-  ajis2: [['Pentas dah siap, lampu dah menyala. Lagu kita malam ni: "Kampung Kita" — lagu yang Pak Ajis tulis sendiri.', 'The stage is ready and the lights are on. Our song tonight: "Kampung Kita" — a song I wrote myself.'],
-    ['Ketik lajur bila not sampai ke garisan. Rendah, tengah, tinggi. Jangan malu!', "Tap the lane when a note reaches the line. Low, middle, high. Don't be shy!"]],
-  ajis3: [['Wah, sorak orang kampung sampai ke laut! Kamu memang bintang kampung.', 'Wow, the cheers reached the sea! You really are the village star.'], ['Tok Abah tunggu kamu di rumah — dia ada sesuatu nak cakap.', 'Tok Abah is waiting for you at home — he has something to say.']],
-  abah5: [['Cucu… Tok dengar kamu menyanyi tadi. Sampai Tok menitis air mata.', 'Grandchild… I heard you singing earlier. It brought tears to my eyes.'],
-    ['Dulu kampung ni sunyi. Orang muda semua ke bandar. Sekarang tengoklah — semua orang balik, semua orang ketawa.', 'This village used to be quiet. The young ones all left for the city. Now look — everyone came back, everyone is laughing.'],
-    ['Tengok langit tu — bunga api! Pesta Kampung Seri Damai yang pertama dalam dua puluh tahun.', "Look at the sky — fireworks! Kampung Seri Damai's first festival in twenty years."],
+  mat3: [['Rezeki laut! Banyak juga kau dapat.', 'The sea was generous! You caught quite a lot.'],
+    ['Bawa ikan ni ke warung Nek Ma. Dia sokmo cari ikan segar untuk ikan bakar.', 'Take these to Nek Ma. She is always after fresh fish for her ikan bakar.']],
+  kiah3: [['Ikan segar dari laut kita sendiri! Lama dah Nek tak dapat ikan macam ni.', "Fresh fish from our own sea! I haven't had fish like this in a long time."],
+    ['Malam ni Nek buat ikan bakar. Mesti ramai orang datang!', "Tonight I'm making ikan bakar. Everyone's going to show up!"]],
+  kiah3b: [['Eh, Pak Mat ada benda nak cakap dengan kamu. Pergilah ke jeti.', 'Oh, Pak Mat has something to tell you. Go to the jetty.']],
+  // ---- Bab 5 · Pok Ajis (festival committee leader, guitarist, writes songs)
+  abah_b5: [['Cucu, kampung kita dah lain. Sawah kuning, jeti riuh, pantai bersih. Semua sebab kamu.', 'Grandchild, our village has changed. The padi is golden, the jetty is busy and the beach is clean. All because of you.'],
+    ['Sabtu ni orang kampung nak buat Pesta Kampung di Balai Raya. Pok Ajis ketua jawatankuasa.', 'This Saturday the villagers are holding a Village Festival at the Balai Raya. Pok Ajis is in charge of the committee.'],
+    ['Pergilah ke Balai Raya, tolong dia. Ketik Balai Raya di peta.', 'Go to the Balai Raya and help him. Tap the Balai Raya on the map.']],
+  ajis1: [['Hah, sampai pun! Pok dah lama tunggu. Balai dah dihias sikit, tapi barang pesta tak cukup lagi.', "Ah, there you are! I've been waiting. The hall is half decorated, but we're still short on supplies."],
+    ['Pergi Damai City Mall, beli semua dalam senarai. Lepas tu tolong Nek Ma masak untuk kenduri.', 'Head to Damai City Mall and buy everything on the list. Then help Nek Ma cook for the feast.'],
+    ['Malam nanti karaoke. Pok Ajis main gitar, kamu nyanyi!', "Tonight is karaoke night. I'll play the guitar and you'll sing!"]],
+  mall5: [['Cukup semua! Pelita, kain rentang, pinggan, air. Settle!', 'Got everything! Lamps, banners, plates, drinks. All sorted!'],
+    ['Sekarang pergi warung Nek Ma. Dia perlukan orang tolong di dapur.', "Now go to Nek Ma's warung. She needs a hand in the kitchen."]],
+  kiah5: [['Kenduri besar malam ni! Nasi minyak, ayam masak merah, satay, apam balik…', 'Big feast tonight! Nasi minyak, ayam masak merah, satay, apam balik…'],
+    ['Tolong Nek layan orang di gerai makanan. Cepat, tapi jangan salah order, ya!', "Help me serve people at the food stalls. Be quick, but don't mix up the orders!"]],
+  kiah5b: [['Sedap! Semua orang dah kenyang. Pergi Balai Raya cepat, karaoke dah nak mula!', "Delicious! Everyone's full. Hurry to the Balai Raya, karaoke is about to start!"]],
+  ajis2: [['Pentas siap, lampu pun dah menyala. Lagu kita malam ni "Kampung Kita". Pok Ajis tulis sendiri, tau!', 'The stage is ready and the lights are on. Tonight\'s song is "Kampung Kita". I wrote it myself, you know!'],
+    ['Ketik lajur bila not sampai garisan. Rendah, tengah, tinggi. Jangan malu-malu!', "Tap the lane when a note reaches the line. Low, middle, high. Don't be shy!"]],
+  ajis3: [['Wah, sorak orang kampung sampai ke laut! Kamu memang bintang kampung.', 'Wow, you could hear the cheering all the way to the sea! You really are the village star.'],
+    ['Tok Abah tunggu kamu di rumah. Ada benda dia nak cakap.', 'Tok Abah is waiting for you at home. He has something to tell you.']],
+  abah_fest: [['Cucu… Tok dengar kamu nyanyi tadi. Menitis air mata Tok.', 'Grandchild… I heard you singing just now. It brought tears to my eyes.'],
+    ['Dulu kampung ni sunyi, orang muda semua ke bandar. Sekarang tengok, semua dah balik, semua ketawa.', 'This village used to be so quiet, with the young people all gone to the city. Now look, everyone is back and laughing.'],
+    ['Tengok langit tu, bunga api! Pesta pertama Kampung Seri Damai dalam dua puluh tahun.', "Look at the sky, fireworks! Kampung Seri Damai's first festival in twenty years."],
     ['Terima kasih, cucu. Kamu wira kampung kita.', 'Thank you, grandchild. You are our village hero.']],
+  // ---- Bab 4 · Kak Long (chatty keropok lekor seller who loves her beach)
   abah_b4: [['Cucu, jalan baru ke Pantai Miami dah siap. Dari situ nampak Jambatan Angkat!', 'Grandchild, the new road to Pantai Miami is finished. You can see the drawbridge from there!'],
-    ['Kawan lama Tok, Kak Long, berniaga keropok lekor tepi pantai. Pergilah jumpa dia — ikut jalan ke timur.', 'My old friend Kak Long sells keropok lekor by the beach. Go and see her — take the road east.']],
-  kaklong1: [['Eh, cucu Tok Abah ke ni? Mari, mari! Kak Long jual keropok lekor paling rangup sekuala!', "Oh, are you Tok Abah's grandchild? Come, come! I sell the crispiest keropok lekor around!"],
-    ['Tapi tengoklah pantai ni… botol, tin, beg plastik, bekas polistirena merata-rata. Penyu pun tak nak naik bertelur.', "But look at this beach… bottles, cans, plastic bags, styrofoam everywhere. Even the turtles won't come up to nest."],
-    ['Tolong Kak Long bersihkan? Ingat: botol plastik, tin dan kaca masuk tong biru KITAR SEMULA. Yang lain masuk tong SAMPAH AM.', 'Will you help me clean it? Remember: plastic bottles, cans and glass go in the blue RECYCLING bin. Everything else goes in GENERAL WASTE.']],
-  kaklong2: [['Masya-Allah, bersihnya! Ni baru Pantai Miami yang Kak Long kenal dulu.', "Masya-Allah, so clean! Now this is the Pantai Miami I remember."],
-    ['Kejap lagi Jambatan Angkat nak naik — Pak Mat nak bawa bot dia keluar ke laut ikut muara. Pergilah tengok dekat jambatan!', "The drawbridge is about to open — Pak Mat is taking his boat out to sea through the river mouth. Go and watch it from the bridge!"]],
-  bridge: [['Tengok tu! Jambatan Angkat ni jambatan angkat yang pertama di Malaysia — malah di Asia Tenggara.', "Look at that! This is the first drawbridge in Malaysia — in all of Southeast Asia, in fact."],
-    ['Reka bentuknya diilhamkan daripada Tower Bridge di London. Empat menara tinggi, dan setiap pasang disambung jambatan langit di atas.', "Its design was inspired by London's Tower Bridge. Four tall towers, and each pair is joined by a skybridge up top."],
-    ['Bila kapal atau bot besar nak lalu, dua bahagian tengah jambatan terangkat ke atas. Hebat, kan?', 'When a ship or big boat needs to pass, the two middle sections lift up. Amazing, right?']],
-  kaklong3: [['Hah, macam mana? Cantik, kan? Waktu malam lagi cantik — lampu menara menyala.', "So, what did you think? Beautiful, right? It's even prettier at night when the towers light up."],
-    ['Nah, keropok lekor panas dengan sos cili untuk kamu. Datanglah selalu tolong jaga pantai — Kak Long bayar!', "Here, hot keropok lekor with chilli sauce for you. Come and help keep the beach clean any time — I'll pay you!"]],
-  mat5: [['Cucu, tengok tu — anak-anak muda datang ke jeti nak belajar memancing!', 'Look — the young ones are coming to the jetty to learn fishing!'],
-    ['Dah lama jeti ni tak riuh macam ni. Kau bawa balik semangat laut kampung kita.', "This jetty hasn't been this lively in years. You brought back our village's love for the sea."],
-    ['Datanglah memancing bila-bila. Hasil tangkapan, Pak Mat beli!', "Come fishing any time. I'll buy whatever you catch!"]],
+    ['Kawan lama Tok, Kak Long, jual keropok lekor tepi pantai. Pergilah jumpa dia, ikut jalan ke timur.', 'My old friend Kak Long sells keropok lekor by the beach. Go and see her. Take the road east.']],
+  kaklong1: [['Eh, cucu Tok Abah ke ni? Mari, mari! Keropok lekor Kak Long paling rangup sekuala, tau!', "Oh, you're Tok Abah's grandchild? Come, come! My keropok lekor is the crispiest in town!"],
+    ['Tapi tengoklah pantai ni… botol, tin, plastik, polistirena merata. Penyu pun tak nak naik bertelur.', "But look at this beach… bottles, cans, plastic and styrofoam everywhere. Even the turtles won't come ashore to nest."],
+    ['Tolong Kak Long kutip? Botol plastik, tin dan kaca masuk tong biru KITAR SEMULA. Lain-lain masuk SAMPAH AM.', 'Help me clean up? Plastic bottles, cans and glass go in the blue RECYCLING bin. Everything else goes in GENERAL WASTE.']],
+  kaklong2: [['MasyaAllah, bersihnya! Ni baru Pantai Miami yang Kak Long kenal.', 'MasyaAllah, so clean! Now this is the Pantai Miami I remember.'],
+    ['Kejap lagi Jambatan Angkat naik. Pak Mat nak bawa bot keluar ikut muara. Pergi tengok dekat jambatan!', 'The drawbridge is about to lift. Pak Mat is taking his boat out through the river mouth. Go and watch from the bridge!']],
+  bridge: [['Tengok tu! Inilah jambatan angkat pertama di Malaysia, malah di Asia Tenggara.', 'Look at that! This is the first drawbridge in Malaysia, and in all of Southeast Asia too.'],
+    ['Rekaannya ikut Tower Bridge di London. Empat menara, setiap pasang bersambung dengan jambatan langit.', "The design was inspired by London's Tower Bridge. Four towers, and each pair is joined by a skybridge."],
+    ['Bila kapal besar nak lalu, dua bahagian tengah tu terangkat. Best, kan?', 'When a big ship needs to pass, the two middle sections lift up. Cool, right?']],
+  kaklong3: [['Hah, macam mana? Cantik, kan? Malam lagi cantik, lampu menara menyala.', "So, what do you think? Pretty, right? It's even nicer at night when the towers light up."],
+    ['Nah, keropok lekor panas dengan sos cili. Datanglah selalu tolong jaga pantai, Kak Long bayar!', "Here, hot keropok lekor with chilli sauce. Come and help look after the beach any time. I'll pay you!"]],
+  mat5: [['Cucu, tengok tu! Budak-budak muda datang jeti nak belajar memancing!', 'Look over there! Young people are coming to the jetty to learn how to fish!'],
+    ['Lama dah jeti ni tak riuh macam ni. Kau yang bawa balik semangat laut kampung kita.', "This jetty hasn't been this lively in years. You brought the sea back to our village."],
+    ['Datanglah memancing bila-bila. Apa kau dapat, Pak Mat beli!', "Come fishing any time. Whatever you catch, I'll buy!"]],
 };
 const IDLE = {
-  abah: [['Jalan elok-elok, cucu.', 'Walk carefully, grandchild.'], ['Dulu Tok bina rumah ni dengan tangan Tok sendiri.', 'I built this house with my own hands.']],
-  kiah: [['Nak teh tarik? Nanti Nek buatkan.', "Want teh tarik? I'll make you one."], ['Nasi lemak Nek paling sedap sekampung!', 'My nasi lemak is the best in the village!']],
-  din: [['Aduh, pinggang ni…', 'Oh, my back…'], ['Kereta bersih, hati pun senang.', 'Clean car, happy heart.']],
-  amin: [['Abang, Kakak, jom main bola petang nanti!', "Let's play football this evening!"], ['Bila besar, Amin nak jadi wira kampung!', 'When I grow up, I want to be a village hero!']],
-  hassan: [['Padi ni macam anak — kena jaga hari-hari.', 'Padi is like a child — you tend it every day.'], ['Bila hujan turun, sawah ni hijau semula.', 'When the rain comes, this field turns green again.']],
-  lim: [['Mari, mari! Gula, tepung, minyak — semua ada!', 'Come, come! Sugar, flour, oil — I have everything!'], ['Uncle buka kedai ni sejak tahun 1985.', "I've run this shop since 1985."]],
-  ani: [['Jangan lupa membaca, ya!', "Don't forget to read!"], ['Murid-murid Cikgu dulu semua dah besar.', 'All my old pupils are grown up now.']],
-  kaklong: [['Keropok lekor! Panas-panas, rangup-rangup!', 'Keropok lekor! Hot and crispy!'], ['Petang-petang ramai orang main wau kat pantai ni.', 'In the evenings lots of people fly wau kites on this beach.'], ['Jangan buang sampah merata, ya!', "Don't litter, okay!"]],
-  mat: [['Laut ni guru yang paling sabar.', 'The sea is the most patient teacher.'], ['Subuh esok angin elok. Ikan mesti banyak.', 'The wind will be good at dawn. Plenty of fish.']],
-  abu: [['Petang-petang Pak Ajis main gitar di beranda.', 'In the evenings I play guitar on the verandah.'], ['Rumah Pak Ajis ni dah tiga generasi.', 'This house has been in my family for three generations.']],
+  abah: [['Jalan elok-elok, cucu. Jangan lari, nanti jatuh.', "Walk carefully, grandchild. Don't run or you'll trip."], ['Rumah ni Tok bina dengan tangan sendiri. Kayu cengal, tahan lama!', 'I built this house with my own hands. Cengal wood, built to last!'], ['Dah solat? Nanti singgah surau dengan Tok.', 'Have you prayed yet? Come to the surau with me later.']],
+  kiah: [['Nak teh tarik? Kejap, Nek buatkan.', "Want some teh tarik? Hang on, I'll make you one."], ['Nasi lemak Nek paling sedap sekampung. Tanyalah sesiapa!', 'My nasi lemak is the best in the village. Ask anyone!'], ['Makan dulu, baru kerja. Perut kosong mana boleh!', "Eat first, then work. You can't work on an empty stomach!"]],
+  din: [['Aduh, pinggang ni… Dah tua agaknya.', 'Ouch, my back… Must be getting old.'], ['Kereta bersih, hati pun senang.', 'Clean car, happy heart.'], ['Sabun ada, span ada, air ada. Jom, bos!', "Soap, sponge, water, all ready. Let's go, boss!"]],
+  amin: [['Abang, Kakak, jom main bola petang nanti!', 'Want to play football this evening?'], ['Bila besar, Amin nak jadi wira kampung!', 'When I grow up, I want to be a village hero!'], ['Tadi Amin nampak penyu kat Pantai Miami!', 'I saw a turtle at Pantai Miami earlier!']],
+  hassan: [['Padi ni macam anak, kena jaga hari-hari.', 'Padi is like a child. You have to look after it every day.'], ['Hujan turun nanti, sawah ni hijau balik.', 'Once the rain comes, this field will turn green again.']],
+  lim: [['Mari, mari! Gula, tepung, minyak, semua ada!', 'Come, come! Sugar, flour, cooking oil, I have it all!'], ['Uncle buka kedai ni dari tahun 1985 lagi, tau.', "I've been running this shop since 1985, you know."], ['Hari ni ada diskaun. Tapi untuk you saja, ah!', 'Discount today. Just for you, okay!']],
+  ani: [['Jangan lupa membaca, ya. Sehari satu bab pun cukup!', "Don't forget to read. Even one chapter a day is enough!"], ['Murid-murid Cikgu dulu semua dah besar panjang.', 'All my old pupils are grown up now.'], ['Good job! Cikgu bangga dengan kamu.', "Good job! I'm proud of you."]],
+  kaklong: [['Keropok lekor! Panas-panas, rangup-rangup!', 'Keropok lekor! Hot and crispy!'], ['Petang-petang ramai orang main wau kat pantai ni.', 'Lots of people fly wau kites on this beach in the evening.'], ['Jangan buang sampah merata, ya! Kesian penyu.', "Don't litter, okay! Think of the turtles."]],
+  mat: [['Laut ni cikgu paling sabar.', 'The sea is the most patient teacher there is.'], ['Esok subuh angin elok. Mesti banyak ikan.', "The wind will be good at dawn tomorrow. Should be plenty of fish."]],
+  abu: [['Petang-petang Pok Ajis petik gitar di beranda. Singgahlah!', 'In the evenings I play guitar on the verandah. Drop by!'], ['Rumah Pok Ajis ni dah tiga generasi, tau.', 'This house has been in my family for three generations.'], ['Ada lagu baru dalam kepala ni. Nanti Pok nyanyikan!', "There's a new song in my head. I'll sing it for you sometime!"]],
 };
-const GREETS = [['Assalamualaikum!', 'Peace be upon you!'], ['Panas betul hari ni.', "It's really hot today."], ['Dah makan?', 'Have you eaten?'], ['Eh, anak siapa ni? Oh, cucu Tok Abah!', "Whose kid is this? Oh, Tok Abah's grandchild!"], ['Petang nanti ada gotong-royong.', "There's a community clean-up this evening."]];
+const GREETS = [['Assalamualaikum!', 'Peace be upon you!'], ['Panas terik hari ni, kan?', "Scorching today, isn't it?"], ['Dah makan?', 'Have you eaten?'], ['Eh, anak siapa ni? Oh, cucu Tok Abah!', "Whose child is this? Oh, Tok Abah's grandchild!"], ['Petang nanti gotong-royong, jangan lupa!', "Community clean-up this evening, don't forget!"], ['Jom minum kopi kat warung Nek Ma!', "Let's grab a coffee at Nek Ma's warung!"]];
 const RANKS = [[0, 'Budak Baru'], [8, 'Anak Kampung'], [20, 'Geng Kampung'], [40, 'Wira Kampung'], [70, 'Ketua Belia']];
 const rank = () => RANKS.filter(([n]) => S.stars >= n).pop()[1];
 
@@ -222,7 +229,7 @@ function addStars(n) { const before = rank(); S.stars += n; save(); bump('stars'
 function showMission() { const c = cur(); if (c) { toast(`Misi: ${c.bm}`, c.en); town.focus(targetOf(c)); } }
 
 // ------------------------------------------------------------ town
-const heroAt = () => { const c = cur(); if (!c) return 'house_abah'; const id = targetOf(c); return { jeti: 'mat', padi: 'hassan', carwash: 'din', yard_abah: 'abah', house_abah: 'abah', pantai: 'kaklong', jambatan: 'kaklong' }[id] || id; };
+const heroAt = () => { const c = cur(); if (!c) return 'house_abah'; const id = targetOf(c); return { jeti: 'mat', padi: 'hassan', carwash: 'din', yard_abah: 'abah', house_abah: 'abah', pantai: 'kaklong', jambatan: 'photo' }[id] || id; }; // jambatan: wait at the photo booth, the nearest spot that sees the bridge
 const townHooks = { flags, markers, onTap, npcVisible, heroAt };
 let town = null;
 if (S.gfx !== '2d' && has3D()) {
@@ -353,7 +360,7 @@ async function talk(id) {
   // ---- Bab 5
   if (id === 'abah' && at(5, 0)) { await dialog(n, LINES.abah_b5); advance(); town.focus('balai'); return; }
   if (id === 'kiah' && at(5, 3)) { await dialog(n, LINES.kiah5); return missionGame('market'); }
-  if (id === 'abah' && at(5, 5)) { await dialog(n, LINES.abah5); fireworks(); return finishChapter(5); }
+  if (id === 'abah' && at(5, 5)) { await dialog(n, LINES.abah_fest); fireworks(); return finishChapter(5); }
   if (id === 'abah' && at(4, 0)) { await dialog(n, LINES.abah_b4); advance(); town.focus('kaklong'); return; }
   if (id === 'kaklong' && at(4, 1)) { await dialog(n, LINES.kaklong1); advance(); town.focus('pantai'); return; }
   if (id === 'kaklong' && at(4, 2)) { await dialog(n, [LINES.kaklong1[2]]); return missionGame('beach'); }
@@ -454,7 +461,7 @@ async function onTap(hit) {
     if (at(2, 4) && !S.invited.includes(y)) return talk(y);
     if (!done(1, 1)) return toast('Jiran belum perlukan bantuan', "The neighbours don't need help yet");
     if (S.daily.yards.includes(y)) return toast('Laman ni dah kemas hari ni', 'This yard is already done today');
-    if (await jobPrompt(y === 'ani' ? 'Tebas laman Cikgu Aqilah' : 'Tebas laman Pak Ajis', 40)) return dailyJob('grass', y);
+    if (await jobPrompt(y === 'ani' ? 'Tebas laman Cikgu Aqilah' : 'Tebas laman Pok Ajis', 40)) return dailyJob('grass', y);
     return;
   }
   if (id === 'carwash') {
@@ -544,7 +551,7 @@ $('muteBtn').textContent = S.muted ? '🔇' : '🔊';
 $('fsBtn').onclick = () => { try { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen().catch(() => {}); } catch {} };
 $('menuBtn').onclick = async () => {
   sfx.tap();
-  const v = await modal({ kicker: 'MENU', title: 'MyKampung', html: `<p class="muted">Gelaran · Title: <b>${rank()}</b> · ⭐ ${S.stars} · 💵 ${fmtRM(balance())}</p>`, buttons: [['Cara main · How to play', 'help'], ['🎉 Aktiviti · Activities', 'acts'], ['Latihan mini game · Practice', 'practice'], [S.timeMode === 'day' ? 'Masa: sentiasa siang' : 'Masa: ikut jam sebenar', 'time'], ['🐟 Buku Ikan · Fish book', 'fishbook'], [S.music === false ? '🎵 Muzik: tutup → buka' : '🎵 Muzik: buka → tutup', 'music'], [S.gfx === '2d' ? 'Grafik: 2D (ringan) → tukar 3D' : 'Grafik: 3D → tukar 2D (ringan)', 'gfx'], ['💾 Simpanan · Save backup', 'savedata'], ['Kredit · Credits', 'credits'], ['Mula semula · Restart', 'reset'], ['Tutup · Close', 'ok', true]] });
+  const v = await modal({ kicker: 'MENU', title: 'MyKampung', html: `<p class="muted">Gelaran · Title: <b>${rank()}</b> · ⭐ ${S.stars} · 💵 ${fmtRM(balance())}</p>`, buttons: [['Cara main · How to play', 'help'], ['🎉 Aktiviti · Activities', 'acts'], ['Latihan mini game · Practice', 'practice'], [S.timeMode === 'day' ? 'Masa: sentiasa siang' : 'Masa: ikut jam sebenar', 'time'], ['🐟 Buku Ikan · Fish book', 'fishbook'], [S.music === false ? '🎵 Muzik: tutup → buka' : '🎵 Muzik: buka → tutup', 'music'], [S.gfx === '2d' ? 'Grafik: 2D (ringan) → tukar 3D' : 'Grafik: 3D → tukar 2D (ringan)', 'gfx'], ['💾 Simpanan · Save backup', 'savedata'], ['🌐 Dalam talian · Online', 'online'], ['Kredit · Credits', 'credits'], ['Mula semula · Restart', 'reset'], ['Tutup · Close', 'ok', true]] });
   if (v === 'help') return howTo();
   if (v === 'music') { setMusic(S.music === false); toast(S.music === false ? 'Muzik ditutup' : 'Muzik dibuka', S.music === false ? 'Music off' : 'Music on'); return; }
   if (v === 'acts') {
@@ -583,6 +590,7 @@ $('menuBtn').onclick = async () => {
   if (v === 'time') { S.timeMode = S.timeMode === 'day' ? 'real' : 'day'; save(); toast(S.timeMode === 'day' ? 'Sentiasa siang' : 'Ikut jam sebenar', S.timeMode === 'day' ? 'Always daytime' : 'Follows your real clock'); return; }
   if (v === 'gfx') { S.gfx = S.gfx === '2d' ? '3d' : '2d'; save(); location.reload(); return; }
   if (v === 'savedata') return saveMenu();
+  if (v === 'online') return onlineMenu();
   if (v === 'reset') { const c = await modal({ title: 'Mula semula?', body: 'Semua kemajuan akan hilang. All progress will be lost.', buttons: [['Ya, padam · Yes, erase', 'yes'], ['Batal · Cancel', 'no', true]] }); if (c === 'yes') { wipe(); location.reload(); } }
 };
 // ------------------------------------------------------------ save backup: export to a file, import from a file
@@ -611,6 +619,64 @@ async function saveMenu() {
   const c = await modal({ kicker: '💾 IMPORT', title: 'Ganti kemajuan?', html: `<p>Fail ini: <b>Bab ${d.chapter}</b> · ⭐ ${d.stars || 0} · ${fmtRM(d.coins)}</p><p>Sekarang: <b>Bab ${S.chapter}</b> · ⭐ ${S.stars} · ${fmtRM(balance())}</p><p class="muted">Kemajuan sekarang akan diganti. · Your current progress will be replaced by this file.</p>`, buttons: [['Ya, import · Yes, import', 'yes'], ['Batal · Cancel', 'no', true]] });
   if (c !== 'yes') return;
   if (importSave(d)) location.reload(); else toast('Import gagal', 'Import failed — storage is full or blocked');
+}
+// ------------------------------------------------------------ online: sign-in, cloud save, rooms (js/online.js)
+const esc = (t) => String(t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+const lsGet = (k) => { try { return localStorage.getItem(k) || ''; } catch { return ''; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch {} };
+const me = () => ({ name: lsGet('mykampung_online_name') || rank(), chapter: S.chapter, stars: S.stars, place: (cur() && targetOf(cur())) || '' });
+let cloudTimer = 0;
+function startCloudSync() { // every 2 min while signed in: upload if the local save changed (server keeps the newer one)
+  if (cloudTimer) return; let last = 0;
+  cloudTimer = setInterval(async () => { if (!S.savedAt || S.savedAt === last || isStale()) return; try { const r = await online.pushCloud(S, { stale: isStale() }); if (r.ok) last = S.savedAt; } catch {} online.updatePresence(me()).catch(() => {}); }, 120000);
+}
+async function onlineMenu() {
+  const K = '🌐 DALAM TALIAN · ONLINE';
+  if (!online.onlineConfigured()) return modal({ kicker: K, title: 'Belum disediakan', body: 'Ciri dalam talian (log masuk, simpanan awan, bilik) belum disambungkan oleh pemilik permainan. Permainan dan simpanan tempatan berfungsi seperti biasa. · Online features are not set up yet. The game and local saves work as usual.', buttons: [['OK', 'ok', true]] });
+  let u = null; try { u = await online.currentUser(); } catch (e) { return toast('Tak dapat sambung', 'Could not reach the online service'); }
+  if (!u) {
+    const v = await modal({ kicker: K, title: 'Log masuk', html: '<p>Masukkan emel. Kami hantar pautan log masuk (tiada kata laluan). <small class="muted">Enter your email and we send a sign-in link (no password).</small></p><input id="olEmail" type="email" autocomplete="email" inputmode="email" maxlength="254" placeholder="nama@contoh.com" style="width:100%;font-size:16px;padding:10px">', buttons: [['Hantar pautan · Send link', 'send', true], ['Batal · Cancel', 'no']] });
+    if (v !== 'send') return;
+    const r = await online.signIn(($('olEmail').value || '').trim()).catch((e) => ({ ok: false, reason: e.message }));
+    return toast(r.ok ? '📧 Semak emel anda' : 'Gagal: ' + (r.reason === 'email' ? 'emel tidak sah' : r.reason), r.ok ? 'Check your email for the sign-in link' : 'Sign-in failed');
+  }
+  startCloudSync();
+  const room = online.roomCode();
+  const v = await modal({ kicker: K, title: 'Akaun · Account', html: `<p class="muted small">${esc(u.email || '')}</p>${room ? `<p>Bilik · Room: <b>${esc(room)}</b></p>` : ''}`,
+    buttons: [['☁️ Simpan ke awan · Upload', 'up', true], ['⬇️ Ambil dari awan · Restore', 'down'], [room ? '👥 Ahli bilik · Room' : '👥 Masuk bilik · Join room', 'room'], ['Log keluar · Sign out', 'out'], ['Tutup · Close', 'ok']] });
+  if (v === 'up') { const r = await online.pushCloud(S, { stale: isStale() }).catch((e) => ({ ok: false, reason: e.message })); return toast(r.ok ? (r.applied ? '☁️ Disimpan ke awan' : '☁️ Awan dah ada simpanan lebih baru') : 'Gagal: ' + r.reason, r.ok ? (r.applied ? 'Saved to the cloud' : 'The cloud already has newer progress') : 'Upload failed'); }
+  if (v === 'down') {
+    const r = await online.pullCloud().catch((e) => ({ ok: false, reason: e.message }));
+    if (!r.ok) return toast('Gagal: ' + r.reason, 'Could not read the cloud save');
+    if (!r.row) return toast('Tiada simpanan awan', 'No cloud save yet');
+    const p = parseSave(JSON.stringify(r.row.data)); if (!p.ok) return toast('Simpanan awan rosak', 'The cloud save is not valid — your progress is unchanged');
+    const d = p.data, plan = online.cloudPlan(S, r.row);
+    const c = await modal({ kicker: K, title: 'Ganti dengan simpanan awan?', html: `<p>Awan · Cloud: <b>Bab ${d.chapter}</b> · ⭐ ${d.stars || 0} · ${fmtRM(d.coins)}</p><p>Sekarang · Now: <b>Bab ${S.chapter}</b> · ⭐ ${S.stars} · ${fmtRM(balance())}</p>${plan === 'upload' ? '<p><b>⚠️ Simpanan di peranti ini lebih baru.</b> <small>This device has newer progress.</small></p>' : ''}<p class="muted small">Simpanan sekarang disimpan di tepi. · Your current save is kept aside.</p>`, buttons: [['Ya, ganti · Yes, replace', 'yes'], ['Batal · Cancel', 'no', true]] });
+    if (c === 'yes') { if (importSave(d)) location.reload(); else toast('Gagal', 'Restore failed — storage is full or blocked'); }
+    return;
+  }
+  if (v === 'room') return roomMenu();
+  if (v === 'out') { await online.signOut().catch(() => {}); clearInterval(cloudTimer); cloudTimer = 0; return toast('Log keluar', 'Signed out'); }
+}
+async function roomMenu() {
+  const K = '👥 BILIK · ROOM';
+  if (!online.roomCode()) {
+    const v = await modal({ kicker: K, title: 'Masuk bilik', html: `<p>Kongsi kod bilik dengan kawan. <small class="muted">Share the room code with friends.</small></p><input id="olRoom" maxlength="8" autocapitalize="characters" placeholder="${online.newRoomCode()}" style="width:100%;font-size:16px;padding:10px;text-transform:uppercase"><input id="olName" maxlength="24" placeholder="Nama paparan · Display name" value="${esc(lsGet('mykampung_online_name'))}" style="width:100%;font-size:16px;padding:10px;margin-top:8px">`, buttons: [['Masuk · Join', 'join', true], ['Batal · Cancel', 'no']] });
+    if (v !== 'join') return;
+    const code = (($('olRoom').value || $('olRoom').placeholder).trim()).toUpperCase(), name = ($('olName').value || '').trim().slice(0, 24);
+    if (name) lsSet('mykampung_online_name', name);
+    const r = await online.joinRoom(code, me(), renderMembers).catch((e) => ({ ok: false, reason: e.message }));
+    if (!r.ok) return toast('Tak dapat masuk bilik: ' + r.reason, 'Could not join the room');
+    toast('👥 Dalam bilik ' + code, 'Joined room ' + code);
+  }
+  const p = modal({ kicker: K, title: 'Bilik ' + online.roomCode(), html: '<ul id="olMembers" class="catchList"><li class="muted">…</li></ul>', buttons: [['Keluar bilik · Leave', 'leave'], ['Tutup · Close', 'ok', true]] });
+  if (roomList) renderMembers(roomList); // the list may have arrived before this pop-up opened
+  const v = await p; if (v === 'leave') { await online.leaveRoom(); roomList = null; toast('Keluar bilik', 'Left the room'); }
+}
+let roomList = null;
+function renderMembers(list) {
+  roomList = list; const ul = $('olMembers'); if (!ul) return; ul.textContent = '';
+  for (const m of list) { const li = document.createElement('li'); li.textContent = `${m.name} · Bab ${m.chapter} · ⭐ ${m.stars}${m.place ? ' · ' + m.place : ''}`; ul.append(li); }
 }
 function howTo() {
   return modal({ kicker: 'CARA MAIN · HOW TO PLAY', title: 'Selamat datang!', html: `<ul class="help">
@@ -677,3 +743,8 @@ function loop(now) {
 }
 requestAnimationFrame(loop);
 window.__town = { S, get town() { return town; }, onTap, CHAPTERS, playGame, cur };
+// cache model packs and code for fast repeat loads (see sw.js); the game works the same without it
+if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+  const reg = () => navigator.serviceWorker.register('sw.js').catch((e) => console.warn('service worker not registered', e));
+  document.readyState === 'complete' ? reg() : addEventListener('load', reg); // main.js awaits on load, so 'load' may have passed
+}

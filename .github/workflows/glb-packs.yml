@@ -1,0 +1,44 @@
+# Validate GLB packs under assets/packs and keep assets/packs/index.json up to date.
+# - Pushes to any branch (a GitHub web upload is a push): regenerate index.json, commit it back if it changed, then fail
+#   the run if a model is invalid.
+# - Pull requests: validate only (the push run on the PR's branch already committed the index).
+#   (Pushes made with GITHUB_TOKEN do not start another workflow run, so this cannot loop.)
+name: GLB packs
+on:
+  push:
+    branches: ['**']
+    paths: ['assets/packs/**', 'tools/index_packs.mjs', 'tools/check_glb.mjs', 'js/models.js', 'tools/build_models.py', 'test/packs/**', '.github/workflows/glb-packs.yml']
+  pull_request:
+    paths: ['assets/packs/**', 'tools/index_packs.mjs', 'tools/check_glb.mjs', 'js/models.js', 'tools/build_models.py', 'test/packs/**', '.github/workflows/glb-packs.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: glb-packs-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  packs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Index GLB packs
+        run: node tools/index_packs.mjs
+      - name: Commit the updated index (pushes)
+        if: github.event_name != 'pull_request'
+        run: |
+          if git diff --quiet -- assets/packs/index.json; then echo "index.json up to date"; exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/packs/index.json
+          git commit -m "Update assets/packs/index.json [GLB packs]"
+          git push
+      - name: Tests (indexer, validator, legacy pack exclusion)
+        run: |
+          node test/packs/packs.test.mjs
+          node test/npc/check_glb.test.mjs
+      # last, so a bad model is still indexed (valid: false, the game skips it) but the run turns red with the reasons
+      - name: Validate every GLB (fails on Draco/Meshopt/KTX2, missing textures, id collisions, over-budget files)
+        run: node tools/index_packs.mjs --strict
