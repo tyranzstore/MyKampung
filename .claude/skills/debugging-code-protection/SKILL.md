@@ -1,3 +1,4 @@
+---
 name: debugging-code-protection
 description: Use when diagnosing bugs, reviewing changes, refactoring existing code or protecting functionality from regressions.
 ---
