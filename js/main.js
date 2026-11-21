@@ -1,4 +1,4 @@
-import { $, S, save, wipe, saveStatus, keepSaveSafe, startAutosave, newerOnDisk, exportSave, parseSave, importSave, checkDaily, audioInit, setMuted, sfx, toast, dialog, modal, ui, wantMusic, setMusic } from './core.js';
+import { $, S, save, wipe, saveStatus, keepSaveSafe, startAutosave, newerOnDisk, onStale, isStale, audioPause, exportSave, parseSave, importSave, checkDaily, audioInit, setMuted, sfx, toast, dialog, modal, ui, wantMusic, setMusic } from './core.js';
 import { createTown, NPCS } from './town.js';
 import { createTown3D } from './town3d.js';
 import { runGame, FISH, RARITY } from './minigames.js';
@@ -649,6 +649,21 @@ async function start() {
   showMission();
   if (saveStatus() === 'restored') setTimeout(() => toast('💾 Simpanan dipulihkan', 'Your save was damaged and has been restored from the backup'), 2800); // after the mission toast
 }
+// ------------------------------------------------------------ outdated tab: another tab saved newer progress
+// Blocking pop-up above everything (mini-games and karaoke included). This tab no longer saves (core.js);
+// the only way on is "Muat Semula", which reloads the latest save.
+function showStaleTab() {
+  if ($('staleTab')) return;
+  ui.busy = true; audioPause();
+  const o = document.createElement('div'); o.id = 'staleTab'; o.className = 'overlay'; o.setAttribute('role', 'alertdialog'); o.setAttribute('aria-modal', 'true');
+  o.innerHTML = `<div class="card"><div class="kick">⚠️ TAB LAIN · ANOTHER TAB</div><h2>Muat semula permainan</h2><p>Permainan dibuka di tab lain. Kemajuan terbaru telah disimpan di sana.</p><p class="muted small">The game is open in another tab and your latest progress was saved there. Reload to continue from it.</p><div class="btns"><button id="staleReload" class="primary">Muat Semula</button></div></div>`;
+  document.body.append(o); const b = $('staleReload'); b.onclick = () => location.reload(); b.focus();
+}
+onStale(showStaleTab);
+// keyboard play (WASD, J/K/L…) is blocked too while the pop-up is up; Enter/Space still press "Muat Semula"
+addEventListener('keydown', (e) => { if (isStale() && e.target.id !== 'staleReload') { e.stopImmediatePropagation(); e.preventDefault(); } }, true);
+addEventListener('keyup', (e) => { if (isStale()) e.stopImmediatePropagation(); }, true);
+
 $('playBtn').textContent = S.started ? 'Sambung · Continue' : 'Main · Play';
 $('playBtn').onclick = start;
 hud();

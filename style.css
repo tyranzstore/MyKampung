@@ -43,6 +43,7 @@ canvas{display:block}
 #toast.show{opacity:1}
 #saveTick{position:absolute;top:calc(60px + env(safe-area-inset-top,0px));right:calc(10px + env(safe-area-inset-right,0px));z-index:21;background:rgba(20,52,58,.88);color:#cfeedd;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:800;opacity:0;transition:opacity .3s;pointer-events:none}
 #saveTick.show{opacity:.95}
+#staleTab{position:fixed;z-index:100}
 
 #dialog{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);width:min(660px,95vw);z-index:15;background:#fffaf0;color:#1d332e;border-radius:18px;border:3px solid #e6a32c;box-shadow:0 12px 40px rgba(0,0,0,.4);display:flex;gap:12px;padding:12px 14px;cursor:pointer;align-items:flex-start}
 #dlgAvatar{flex:none;width:52px;height:52px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:900;font-size:16px;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.2)}
