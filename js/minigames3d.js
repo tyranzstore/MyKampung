@@ -2,7 +2,7 @@
 // Works with mouse and touch: every pointer is raycast into the scene.
 import { $, clamp, lerp, sfx, loopSound, toast, mulberry32, boatEngine, seaAmbience, musicDuck } from './core.js';
 import { Grid, progressBar, beachCore, TRASH, BINS, setupHelp, pauseWhenHidden, hideTutorial, fishCore, boatCore, drawHull, HULL, halfW, SPOTS, RARITY, fishLen, showFishCard, hideFishCard } from './minigames.js';
-import { loadModels, putModel, putAnimated, isShared } from './models.js';
+import { loadModels, putModel, putAnimated, isShared, hdFish } from './models.js';
 import { initSkins, skinFish } from './fishskin.js';
 import { makeOcean, shoreWaves } from './ocean.js';
 import { futsalScenes } from './futsal3d.js';
@@ -1171,7 +1171,7 @@ function Fish3D(K, api, opts, M = {}) {
   const pullArrow = K.group(0, 0, 0, rig); pullArrow.visible = false; { const pm = K.mat(0xffd452, { emissive: 0x8a6400, emissiveIntensity: .6 }); const c = K.mesh(new T.ConeGeometry(.35, .6, 3), pm, .6, 0, 0, pullArrow, false); c.rotation.z = -Math.PI / 2; K.box(.8, .16, .16, pm, 0, 0, 0, pullArrow, false); }
   const jump = K.group(0, -50, 0, rig); let jumpT = 0, jumpModel = null;
   const hold = angler.hero ? K.group(0, .5 * angler.h, .3 * angler.h, angler.body) : K.group(0, 1.22, .62, angler.body); let holdModel = null;
-  const fishModel = (kind, parent, len) => { const mm = putModel(M, kind.model, parent, 0, 0, { len }); if (mm) { skinFish(mm, kind.id); const sz = mm.userData.size; if (sz) mm.position.y = -sz.y * mm.scale.y / 2; return mm; }
+  const fishModel = (kind, parent, len) => { const hd = hdFish(kind.id), mm = putModel(M, hd || kind.model, parent, 0, 0, { len }); if (mm) { if (!hd) skinFish(mm, kind.id); const sz = mm.userData.size; if (sz) mm.position.y = -sz.y * mm.scale.y / 2; return mm; }
     const g = K.group(0, 0, 0, parent); const bd = K.ball(.5, K.mat(0x5f8fb0), 0, 0, 0, g); bd.scale.set(len, len * .35, len * .2); return g; };
   // airliner passing high overhead now and then
   const plane = putModel(M, 'airliner', scene, 0, -400, { len: 26, y: 46 }); let planeT = 6;
@@ -1214,7 +1214,8 @@ function Fish3D(K, api, opts, M = {}) {
   function fishMesh(k, f) {
     let g = fishU[k];
     if (!g) { g = K.group(0, 0, 0, under); fishU[k] = g; }
-    if (g.userData.kind !== f.kind.id || g.userData.kg !== f.kg) { while (g.children.length) g.remove(g.children[0]); fishModel(f.kind, g, fishLen(f.kg)); g.userData.kind = f.kind.id; g.userData.kg = f.kg; }
+    const hd = !!hdFish(f.kind.id); // rebuilt too when the HD model arrives
+    if (g.userData.kind !== f.kind.id || g.userData.kg !== f.kg || g.userData.hd !== hd) { while (g.children.length) g.remove(g.children[0]); fishModel(f.kind, g, fishLen(f.kg)); g.userData.kind = f.kind.id; g.userData.kg = f.kg; g.userData.hd = hd; }
     if (f.depth === undefined) f.depth = -1 - Math.random() * 3.6;
     return g;
   }

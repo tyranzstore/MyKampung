@@ -1,4 +1,255 @@
 {
  "version": 1,
- "packs": {}
+ "packs": {
+  "malaysia-fish-hd": {
+   "name": "Ikan laut HD (fishing activity)",
+   "category": "fish",
+   "models": {
+    "malaysia-fish-hd/Ikan_Baronang": {
+     "path": "assets/packs/malaysia-fish-hd/Ikan_Baronang.glb",
+     "file": "malaysia-fish-hd/Ikan_Baronang.glb",
+     "category": "fish",
+     "bytes": 740844,
+     "rotation": [
+      90,
+      180,
+      0
+     ],
+     "triangles": 10748,
+     "valid": true
+    },
+    "malaysia-fish-hd/Ikan_Bawal_Hitam": {
+     "path": "assets/packs/malaysia-fish-hd/Ikan_Bawal_Hitam.glb",
+     "file": "malaysia-fish-hd/Ikan_Bawal_Hitam.glb",
+     "category": "fish",
+     "bytes": 848992,
+     "rotation": [
+      90,
+      180,
+      0
+     ],
+     "triangles": 17670,
+     "valid": true
+    },
+    "malaysia-fish-hd/Ikan_Bawal_Putih": {
+     "path": "assets/packs/malaysia-fish-hd/Ikan_Bawal_Putih.glb",
+     "file": "malaysia-fish-hd/Ikan_Bawal_Putih.glb",
+     "category": "fish",
+     "bytes": 877952,
+     "rotation": [
+      90,
+      180,
+      0
+     ],
+     "triangles": 17670,
+     "valid": true
+    },
+    "malaysia-fish-hd/Ikan_Belanak": {
+     "path": "assets/packs/malaysia-fish-hd/Ikan_Belanak.glb",
+     "file": "malaysia-fish-hd/Ikan_Belanak.glb",
+     "category": "fish",
+     "bytes": 695656,
+     "rotation": [
+      90,
+      180,
+      0
+     ],
+     "triangles": 14316,
+     "valid": true
+    },
+    "malaysia-fish-hd/Ikan_Cencaru": {
+     "path": "assets/packs/malaysia-fish-hd/Ikan_Cencaru.glb",
+     "file": "malaysia-fish-hd/Ikan_Cencaru.glb",
+     "category": "fish",
+     "bytes": 704680,
+     "rotation": [
+      90,
+      180,
+      0
+     ],
+     "triangles": 13746,
+     "valid": true
+    },
+    "malaysia-fish-hd/Ikan_Duri": {
+     "path": "assets/packs/malaysia-fish-hd/Ikan_Duri.glb",
+     "file": "malaysia-fish-hd/Ikan_Duri.glb",
+     "category": "fish",
+     "bytes": 738996,
+     "rotation": [
+      90,
+      180,
+      0
+     ],
+     "triangles": 15756,
+     "valid": true
+    },
+    "malaysia-fish-hd/Ikan_Gelama": {
+     "path": "assets/packs/malaysia-fish-hd/Ikan_Gelama.glb",
+     "file": "malaysia-fish-hd/Ikan_Gelama.glb",
+     "category": "fish",
+     "bytes": 740600,
+     "rotation": [
+      90,
+      180,
+      0
+     ],
+     "triangles": 14320,
+     "valid": true
+    },
+    "malaysia-fish-hd/Ikan_Jenahak": {
+     "path": "assets/packs/malaysia-fish-hd/Ikan_Jenahak.glb",
+     "file": "malaysia-fish-hd/Ikan_Jenahak.glb",
+     "category": "fish",
+     "bytes": 838636,
+     "rotation": [
+      90,
+      180,
+      0
+     ],
+     "triangles": 20454,
+     "valid": true,
+     "warnings": 1
+    },
+    "malaysia-fish-hd/Ikan_Kembung": {
+     "path": "assets/packs/malaysia-fish-hd/Ikan_Kembung.glb",
+     "file": "malaysia-fish-hd/Ikan_Kembung.glb",
+     "category": "fish",
+     "bytes": 807204,
+     "rotation": [
+      90,
+      180,
+      0
+     ],
+     "triangles": 16118,
+     "valid": true
+    },
+    "malaysia-fish-hd/Ikan_Kerapu": {
+     "path": "assets/packs/malaysia-fish-hd/Ikan_Kerapu.glb",
+     "file": "malaysia-fish-hd/Ikan_Kerapu.glb",
+     "category": "fish",
+     "bytes": 1256244,
+     "rotation": [
+      0,
+      90,
+      0
+     ],
+     "triangles": 3948,
+     "valid": true
+    },
+    "malaysia-fish-hd/Ikan_Kerisi": {
+     "path": "assets/packs/malaysia-fish-hd/Ikan_Kerisi.glb",
+     "file": "malaysia-fish-hd/Ikan_Kerisi.glb",
+     "category": "fish",
+     "bytes": 673376,
+     "rotation": [
+      90,
+      180,
+      0
+     ],
+     "triangles": 10070,
+     "valid": true
+    },
+    "malaysia-fish-hd/Ikan_Merah": {
+     "path": "assets/packs/malaysia-fish-hd/Ikan_Merah.glb",
+     "file": "malaysia-fish-hd/Ikan_Merah.glb",
+     "category": "fish",
+     "bytes": 921304,
+     "rotation": [
+      90,
+      180,
+      0
+     ],
+     "triangles": 8434,
+     "valid": true
+    },
+    "malaysia-fish-hd/Ikan_Pari": {
+     "path": "assets/packs/malaysia-fish-hd/Ikan_Pari.glb",
+     "file": "malaysia-fish-hd/Ikan_Pari.glb",
+     "category": "fish",
+     "bytes": 1118180,
+     "rotation": [
+      0,
+      90,
+      0
+     ],
+     "triangles": 1995,
+     "valid": true
+    },
+    "malaysia-fish-hd/Ikan_Sebelah": {
+     "path": "assets/packs/malaysia-fish-hd/Ikan_Sebelah.glb",
+     "file": "malaysia-fish-hd/Ikan_Sebelah.glb",
+     "category": "fish",
+     "bytes": 2581856,
+     "triangles": 37604,
+     "valid": true,
+     "warnings": 2
+    },
+    "malaysia-fish-hd/Ikan_Selar_Kuning": {
+     "path": "assets/packs/malaysia-fish-hd/Ikan_Selar_Kuning.glb",
+     "file": "malaysia-fish-hd/Ikan_Selar_Kuning.glb",
+     "category": "fish",
+     "bytes": 667068,
+     "rotation": [
+      90,
+      180,
+      0
+     ],
+     "triangles": 10066,
+     "valid": true
+    },
+    "malaysia-fish-hd/Ikan_Siakap": {
+     "path": "assets/packs/malaysia-fish-hd/Ikan_Siakap.glb",
+     "file": "malaysia-fish-hd/Ikan_Siakap.glb",
+     "category": "fish",
+     "bytes": 1024316,
+     "rotation": [
+      90,
+      180,
+      0
+     ],
+     "triangles": 8434,
+     "valid": true
+    },
+    "malaysia-fish-hd/Ikan_Talang": {
+     "path": "assets/packs/malaysia-fish-hd/Ikan_Talang.glb",
+     "file": "malaysia-fish-hd/Ikan_Talang.glb",
+     "category": "fish",
+     "bytes": 644004,
+     "rotation": [
+      90,
+      180,
+      0
+     ],
+     "triangles": 10216,
+     "valid": true
+    },
+    "malaysia-fish-hd/Ikan_Tamban": {
+     "path": "assets/packs/malaysia-fish-hd/Ikan_Tamban.glb",
+     "file": "malaysia-fish-hd/Ikan_Tamban.glb",
+     "category": "fish",
+     "bytes": 752228,
+     "rotation": [
+      90,
+      180,
+      0
+     ],
+     "triangles": 14306,
+     "valid": true
+    },
+    "malaysia-fish-hd/Ikan_Yu_Karang": {
+     "path": "assets/packs/malaysia-fish-hd/Ikan_Yu_Karang.glb",
+     "file": "malaysia-fish-hd/Ikan_Yu_Karang.glb",
+     "category": "fish",
+     "bytes": 890424,
+     "rotation": [
+      0,
+      90,
+      0
+     ],
+     "triangles": 2462,
+     "valid": true
+    }
+   }
+  }
+ }
 }

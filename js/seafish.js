@@ -10,6 +10,7 @@ import { $, clamp, sfx, S, save, checkDaily, toast, loopSound, boatEngine, seaAm
 import { FISH, RARITY, fishLen } from './minigames.js';
 import { makeOcean, shoreWaves } from './ocean.js';
 import { skinFish } from './fishskin.js';
+import { hdFish } from './models.js';
 import { earn, spend, fmtRM, balance } from './wallet.js';
 
 const hyp = Math.hypot, rnd = Math.random;
@@ -171,16 +172,16 @@ export function seaFishScene({ T, environment, Sparks, palm, stiltHouse, putMode
     const splash = new Sparks(scene, 300, 0xffffff, .2), rain = new Sparks(scene, 900, 0xcfe6ff, .1);
     // hooked / showcase fish model
     let fishObj = null; const fishHolder = new T.Group(); scene.add(fishHolder); fishHolder.visible = false;
-    function setFishModel(sp, kg) { if (fishObj) fishHolder.remove(fishObj); fishObj = putModel(M, sp.model, fishHolder, 0, 0, { len: fishLen(kg) }) || (() => { const g = new T.Group(); const m = K.ball(.3, K.mat(0x9aa7b5), 0, 0, 0, g); m.scale.set(1.6, .7, .5); return g; })(); try { skinFish(fishObj, sp.id); } catch { } fishObj.position.y = 0; }
+    function setFishModel(sp, kg) { if (fishObj) fishHolder.remove(fishObj); const hd = hdFish(sp.id); fishObj = putModel(M, hd || sp.model, fishHolder, 0, 0, { len: fishLen(kg) }) || (() => { const g = new T.Group(); const m = K.ball(.3, K.mat(0x9aa7b5), 0, 0, 0, g); m.scale.set(1.6, .7, .5); return g; })(); if (!hd) try { skinFish(fishObj, sp.id); } catch { } fishObj.position.y = 0; fishHolder.userData.hd = !!hd; } // HD models are already textured
 
     // ---------- fish living around the bait: drawn from the species that can bite here (zone, depth, bait, time, weather)
     const ambG = new T.Group(); scene.add(ambG); const amb = []; const motes = new Sparks(scene, 260, 0xd8f3ff, .045);
     function ambClear() { for (const f of amb) ambG.remove(f.o); amb.length = 0; }
     function ambSpawn(sp, kg, far) {
-      const L = clamp(seaLen(sp, kg) / 100, .18, 2.4), o = putModel(M, sp.model, ambG, 0, 0, { len: L }) || (() => { const g = new T.Group(); const m = K.ball(.25, K.mat(0x9aa7b5), 0, 0, 0, g); m.scale.set(L * 2, .6, .45); ambG.add(g); return g; })();
-      try { skinFish(o, sp.id); } catch { }
+      const hd = hdFish(sp.id), L = clamp(seaLen(sp, kg) / 100, .18, 2.4), o = putModel(M, hd || sp.model, ambG, 0, 0, { len: L }) || (() => { const g = new T.Group(); const m = K.ball(.25, K.mat(0x9aa7b5), 0, 0, 0, g); m.scale.set(L * 2, .6, .45); ambG.add(g); return g; })();
+      if (!hd) try { skinFish(o, sp.id); } catch { }
       const low = sp.beh === 'rock' || sp.beh === 'heavy';
-      const f = { o, sp, L, low, r: far ? 7 + rnd() * 3 : 1.4 + rnd() * 3.6, ang: rnd() * 6.28, w: (.22 + rnd() * .3) * (rnd() < .5 ? -1 : 1) * (.6 + sp.spd * .4), dy: (rnd() - .5) * 1.8, ph: rnd() * 6, mode: 'swim', x: F.bx, y: -F.bd, z: F.bz, hx: 1, hz: 0, fade: 0 };
+      const f = { o, hd: !!hd, sp, L, low, r: far ? 7 + rnd() * 3 : 1.4 + rnd() * 3.6, ang: rnd() * 6.28, w: (.22 + rnd() * .3) * (rnd() < .5 ? -1 : 1) * (.6 + sp.spd * .4), dy: (rnd() - .5) * 1.8, ph: rnd() * 6, mode: 'swim', x: F.bx, y: -F.bd, z: F.bz, hx: 1, hz: 0, fade: 0 };
       f.x = F.bx + Math.cos(f.ang) * f.r; f.z = F.bz + Math.sin(f.ang) * f.r; amb.push(f); return f;
     }
     function ambFill() {
@@ -201,6 +202,7 @@ export function seaFishScene({ T, environment, Sparks, palm, stiltHouse, putMode
       if (F.st === 'wait' || F.st === 'sinking') for (const f of amb) if (f.mode === 'take') f.mode = 'swim'; // it spat the bait
       if (F.st === 'fight') for (const f of amb) if (f.mode !== 'flee') { f.mode = f.mode === 'take' ? 'gone' : 'flee'; if (f.mode === 'gone') f.o.visible = false; }
       for (let i = amb.length - 1; i >= 0; i--) { const f = amb[i]; let tx, ty, tz, sp = 1.6 * (.6 + f.sp.spd * .4);
+        if (!f.hd && hdFish(f.sp.id)) { const v = f.o.visible; ambG.remove(f.o); f.o = putModel(M, hdFish(f.sp.id), ambG, 0, 0, { len: f.L }); f.o.visible = v; f.hd = true; } // HD model arrived after this fish spawned
         if (f.mode === 'swim') { f.ang += f.w * dt / Math.max(1, f.r * .5); tx = F.bx + Math.cos(f.ang) * f.r; tz = F.bz + Math.sin(f.ang) * f.r;
           ty = f.low ? -seabed + .35 + f.L * .2 + Math.max(0, f.dy) * .3 : -F.bd + f.dy + Math.sin(t * .5 + f.ph) * .35; }
         else if (f.mode === 'take') { const bite = F.st === 'bite', peck = bite ? 0 : Math.abs(Math.sin(t * 7 + f.ph)) * .35;
@@ -564,7 +566,7 @@ export function seaFishScene({ T, environment, Sparks, palm, stiltHouse, putMode
         const by = F.st === 'flying' ? F.by : -F.bd; bobber.visible = inWater && !['fight', 'gaff'].includes(F.st) && F.bait !== 'gewang' && F.tech !== 'bottom'; bobber.position.set(F.bx, .05 + Math.sin(t * 2) * .03 - (F.st === 'bite' ? .15 : F.st === 'nibble' ? Math.abs(Math.sin(t * 18)) * .06 : 0), F.bz);
         sinker.visible = inWater && F.st !== 'flying' && F.st !== 'gaff'; sinker.position.set(F.bx, by, F.bz);
         // ----- hooked fish: underwater during the fight, thrashing at the surface for the gaff, lifted out on the landing
-        if (fightLike && F.st !== 'lost') { fishHolder.visible = true; if (!fishObj || fishHolder.userData.id !== ff.sp.id) { setFishModel(ff.sp, ff.kg); fishHolder.userData.id = ff.sp.id; }
+        if (fightLike && F.st !== 'lost') { fishHolder.visible = true; if (!fishObj || fishHolder.userData.id !== ff.sp.id || fishHolder.userData.hd !== !!hdFish(ff.sp.id)) { /* also swaps to the HD model once it arrives */ setFishModel(ff.sp, ff.kg); fishHolder.userData.id = ff.sp.id; }
           if (F.st === 'fight') { fishHolder.position.set(F.bx, -F.bd, F.bz); fishHolder.rotation.set(0, Math.atan2(-(F.bz - a.z), F.bx - a.x) + Math.sin(t * 6) * .25, Math.sin(t * 9) * .1);
             if (ff.jumpT > 0) { fishHolder.position.y = Math.sin(ff.jumpT / .9 * Math.PI) * 1.8; fishHolder.rotation.z = (1 - ff.jumpT / .9) * 2.4 - 1.2; } }
           else if (F.st === 'gaff') { fishHolder.position.set(F.bx + Math.sin(t * 11) * .15, -.12 + Math.abs(Math.sin(t * 7)) * .25, F.bz + Math.cos(t * 13) * .15); fishHolder.rotation.set(Math.sin(t * 15) * .5, Math.atan2(-(F.bz - a.z), F.bx - a.x) + Math.sin(t * 9) * .6, Math.sin(t * 12) * .4); }

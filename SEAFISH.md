@@ -55,6 +55,16 @@ Examples of the habitat logic: Kerapu, Jenahak, Jebong and Gerepoh live on reefs
 
 All of these are packed into `assets/models2.json`. The starter pack's freshwater fish (haruan, keli, sebarau, siakap, tilapia) are **not used or renamed**. The GLBs contain only geometry; all gameplay is in JavaScript.
 
+### HD fish pack (`assets/packs/malaysia-fish-hd`)
+19 textured GLBs, loaded one species at a time the first time that fish is needed (`hdFish()` / `loadPackModel()` in `js/models.js`); nothing is fetched at startup. Until a file arrives, or if it fails, the legacy `fish_*` model with its painted skin is shown and then swapped. The legacy models in `assets/fish` and `assets/models2.json` are untouched.
+
+- Pancing Laut (8): Kerapu, Merah, Jenahak, Talang, Pari, Kembung, Kerisi, Gelama.
+- Memancing at the jetty (those 8 plus 8): Selar Kuning, Cencaru, Tamban, Belanak, Siakap, Bawal Hitam, Bawal Putih, Sebelah.
+- In the pack but not used yet (no matching species in the game): Baronang, Duri, Yu Karang.
+- All other species (Tenggiri, Tongkol, Alu-Alu, Jebong, Gerepoh, Layaran, …) keep their legacy models.
+
+Check in a real browser: `THREE_DIR=/path/to/node_modules/three node test/packs/fish_hd.check.mjs`.
+
 **Still missing (good candidates for proper art):** a dedicated reel model, a sampan, hand-modelled Gerepoh and Layaran to replace the procedural ones, and a lure model.
 
 ## Files
