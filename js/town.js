@@ -42,6 +42,12 @@ export const NPCS = {
   abu: { name: 'Pok Ajis', initial: 'PA', color: '#2c3e50', i: 25.6, j: 26.2, look: { shirt: '#95a5a6', pants: '#2c3e50', skin: '#a8703e', songkok: true } },
   kaklong: { name: 'Kak Long', initial: 'KL', color: '#d35400', i: 24.6, j: 4.3, look: { shirt: '#f6a5c0', pants: '#6c3483', skin: '#c68a5a', tudung: '#d35400' } },
   mat: { name: 'Pak Mat', initial: 'PM', color: '#d35400', i: 11.7, j: 4.4, look: { shirt: '#f39c12', pants: '#34495e', skin: '#8d5a34', cap: '#ecf0f1', beard: true } },
+  eby: { name: 'Cikgu Eby', initial: 'CE', color: '#2c3e70', i: 8.6, j: 37.4, look: { shirt: '#1f3a6b', pants: '#1f3a6b', skin: '#c68a5a', tudung: '#2c3e70' } },
+  ngoh: { name: 'Mok Ngoh', initial: 'MN', color: '#3d85c6', i: 22.4, j: 11.6, look: { shirt: '#9fc5e8', pants: '#222222', skin: '#c68a5a', tudung: '#111111' } },
+  yah: { name: 'Mok Yah', initial: 'MY', color: '#22305a', i: 22.6, j: 8.9, look: { shirt: '#22305a', pants: '#22305a', skin: '#c78b5a', tudung: '#b9a5c9' } },
+  yaya: { name: 'Yaya', initial: 'Y', color: '#9c2f2f', i: 5.2, j: 37.4, look: { shirt: '#8a4b2f', pants: '#8a4b2f', skin: '#c68a5a', tudung: '#9c2f2f', kid: true } },
+  seola: { name: 'Seola', initial: 'S', color: '#6d9eeb', i: 3.6, j: 37.4, look: { shirt: '#a9c4e0', pants: '#333333', skin: '#e8c3a0', hair: '#3b2a1f', kid: true } },
+  taeyang: { name: 'Taeyang', initial: 'T', color: '#c0392b', i: 10.6, j: 37.4, look: { shirt: '#c0392b', pants: '#222222', skin: '#e0b08a', hair: '#2a1a10', kid: true } },
 };
 const VILLAGER_LOOKS = [
   { shirt: '#27ae60', pants: '#34495e', skin: '#c68a5a', hair: '#222' },

@@ -5,6 +5,9 @@ import { runGame, FISH, RARITY } from './minigames.js';
 import { runGame3D, has3D } from './minigames3d.js';
 import { ACTIVITIES } from './activities.js';
 import { earn, fmtRM, balance } from './wallet.js';
+import { ACHIEVEMENTS, newAchievements, claimDaily, myDay } from './progress.js';
+import { connect as netConnect, serverUrl } from './net.js';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';
 import { runKaraoke } from './karaoke.js';
 
 const TOWN = 'Kampung Seri Damai';
@@ -171,6 +174,14 @@ const IDLE = {
   kaklong: [['Keropok lekor! Panas-panas, rangup-rangup!', 'Keropok lekor! Hot and crispy!'], ['Petang-petang ramai orang main wau kat pantai ni.', 'Lots of people fly wau kites on this beach in the evening.'], ['Jangan buang sampah merata, ya! Kesian penyu.', "Don't litter, okay! Think of the turtles."]],
   mat: [['Laut ni cikgu paling sabar.', 'The sea is the most patient teacher there is.'], ['Esok subuh angin elok. Mesti banyak ikan.', "The wind will be good at dawn tomorrow. Should be plenty of fish."]],
   abu: [['Petang-petang Pok Ajis petik gitar di beranda. Singgahlah!', 'In the evenings I play guitar on the verandah. Drop by!'], ['Rumah Pok Ajis ni dah tiga generasi, tau.', 'This house has been in my family for three generations.'], ['Ada lagu baru dalam kepala ni. Nanti Pok nyanyikan!', "There's a new song in my head. I'll sing it for you sometime!"]],
+  // new villagers (v2.1): Cikgu Eby (teacher at SK Seri Damai), Mok Ngoh (sells kuih: warung in the morning, pasar malam at night),
+  // Mok Yah (tailor at the shop row), Yaya, Seola and Taeyang (schoolchildren: Taman Ria, the playground and the futsal court after school)
+  eby: [['Selamat pagi! Dah siap kerja sekolah?', 'Good morning! Finished your homework?'], ['Murid Cikgu pandai-pandai belaka. Cikgu bangga!', "My pupils are all so clever. I'm proud of them!"], ['Petang nanti Cikgu bawa budak-budak ke taman.', "This afternoon I'm taking the kids to the park."]],
+  ngoh: [['Kuih! Kuih! Seri muka, karipap, kuih lapis. Mari beli!', 'Kuih! Seri muka, curry puffs, layer cake. Come and buy!'], ['Mok Ngoh bangun pukul empat pagi nak buat kuih ni, tau.', 'I get up at four in the morning to make these, you know.'], ['Malam nanti Mok Ngoh jual di pasar malam. Datanglah!', "Tonight I'm selling at the pasar malam. Do come!"]],
+  yah: [['Nak tempah baju kurung untuk Raya? Mok Yah jahitkan.', 'Want a baju kurung made for Raya? I can sew it.'], ['Kain ni songket Terengganu. Cantik, kan?', 'This is Terengganu songket. Lovely, right?'], ['Lepas Maghrib Mok Yah ke surau. Jumpa di sana!', "After Maghrib I go to the surau. See you there!"]],
+  yaya: [['Aiskrim ni sedap gila! Nak sikit?', 'This ice cream is so good! Want some?'], ['Lepas sekolah Yaya main kat Taman Ria.', 'After school I play at Taman Ria.'], ['Bila besar Yaya nak jadi doktor!', 'When I grow up I want to be a doctor!']],
+  seola: [['Hai! Jom main buaian kat taman!', "Hi! Let's play on the swings at the park!"], ['Seola suka melukis bot nelayan kat jeti.', 'I like drawing the fishing boats at the jetty.'], ['Cikgu Eby kata lukisan Seola cantik!', 'Cikgu Eby says my drawings are pretty!']],
+  taeyang: [['Jom futsal! Taeyang jaga gol, awak sepak!', "Let's play futsal! I'll be in goal, you shoot!"], ['Nombor 46 ni nombor bertuah Taeyang.', 'Number 46 is my lucky number.'], ['Petang ni ada perlawanan di gelanggang. Datang sorak, ya!', "There's a match at the court this afternoon. Come and cheer!"]],
 };
 const GREETS = [['Assalamualaikum!', 'Peace be upon you!'], ['Panas terik hari ni, kan?', "Scorching today, isn't it?"], ['Dah makan?', 'Have you eaten?'], ['Eh, anak siapa ni? Oh, cucu Tok Abah!', "Whose child is this? Oh, Tok Abah's grandchild!"], ['Petang nanti gotong-royong, jangan lupa!', "Community clean-up this evening, don't forget!"], ['Jom minum kopi kat warung Nek Ma!', "Let's grab a coffee at Nek Ma's warung!"]];
 const RANKS = [[0, 'Budak Baru'], [8, 'Anak Kampung'], [20, 'Geng Kampung'], [40, 'Wira Kampung'], [70, 'Ketua Belia']];
@@ -229,7 +240,7 @@ function showMission() { const c = cur(); if (c) { toast(`Misi: ${c.bm}`, c.en);
 
 // ------------------------------------------------------------ town
 const heroAt = () => { const c = cur(); if (!c) return 'house_abah'; const id = targetOf(c); return { jeti: 'mat', padi: 'hassan', carwash: 'din', yard_abah: 'abah', house_abah: 'abah', pantai: 'kaklong', jambatan: 'kaklong' }[id] || id; };
-const townHooks = { flags, markers, onTap, npcVisible, heroAt };
+const townHooks = { flags, markers, onTap, npcVisible, heroAt, npcName: (id) => (NPCS[id] || {}).name || '' };
 let town = null;
 if (S.gfx !== '2d' && has3D()) {
   try { $('town3d').hidden = false; $('town').hidden = true; town = await createTown3D($('town3d'), townHooks); }
@@ -322,7 +333,7 @@ async function finishChapter(n) {
 }
 
 async function talk(id) {
-  const n = NPCS[id], c = cur();
+  const n = NPCS[id], c = cur(); if (n && !(S.talked || {})[id]) { (S.talked ||= {})[id] = 1; save(); }
   // ---- Bab 1
   if (id === 'abah' && at(1, 0)) { await dialog(n, LINES.abah0); return advance(); }
   if (id === 'kiah' && at(1, 3)) { await dialog(n, LINES.kiah); return advance(); }
@@ -446,6 +457,7 @@ async function jobPrompt(title, pay) { return (await modal({ kicker: 'KERJA HARI
 async function onTap(hit) {
   if (ui.busy || !hit) return;
   audioInit(); sfx.tap();
+  if (hit.type === 'ground') { if (town.walkTo) town.walkTo(hit.x, hit.z); return; }
   if (hit.type === 'npc') return talk(hit.id);
   if (hit.type === 'villager') return dialog({ name: 'Orang kampung', initial: '☺', color: '#16a085' }, [GREETS[Math.floor(Math.random() * GREETS.length)]]);
   const id = hit.id;
@@ -550,7 +562,7 @@ $('muteBtn').textContent = S.muted ? '🔇' : '🔊';
 $('fsBtn').onclick = () => { try { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen().catch(() => {}); } catch {} };
 $('menuBtn').onclick = async () => {
   sfx.tap();
-  const v = await modal({ kicker: 'MENU', title: 'MyKampung', html: `<p class="muted">Gelaran · Title: <b>${rank()}</b> · ⭐ ${S.stars} · 💵 ${fmtRM(balance())}</p>`, buttons: [['Cara main · How to play', 'help'], ['🎉 Aktiviti · Activities', 'acts'], ['Latihan mini game · Practice', 'practice'], [S.timeMode === 'day' ? 'Masa: sentiasa siang' : 'Masa: ikut jam sebenar', 'time'], ['🐟 Buku Ikan · Fish book', 'fishbook'], [S.music === false ? '🎵 Muzik: tutup → buka' : '🎵 Muzik: buka → tutup', 'music'], [S.gfx === '2d' ? 'Grafik: 2D (ringan) → tukar 3D' : 'Grafik: 3D → tukar 2D (ringan)', 'gfx'], ['💾 Simpanan · Save backup', 'savedata'], ['Kredit · Credits', 'credits'], ['Mula semula · Restart', 'reset'], ['Tutup · Close', 'ok', true]] });
+  const v = await modal({ kicker: 'MENU', title: 'MyKampung', html: `<p class="muted">Gelaran · Title: <b>${rank()}</b> · ⭐ ${S.stars} · 💵 ${fmtRM(balance())}</p>`, buttons: [['Cara main · How to play', 'help'], ['🎉 Aktiviti · Activities', 'acts'], ['Latihan mini game · Practice', 'practice'], [S.timeMode === 'day' ? 'Masa: sentiasa siang' : 'Masa: ikut jam sebenar', 'time'], ['🐟 Buku Ikan · Fish book', 'fishbook'], [S.music === false ? '🎵 Muzik: tutup → buka' : '🎵 Muzik: buka → tutup', 'music'], [S.gfx === '2d' ? 'Grafik: 2D (ringan) → tukar 3D' : 'Grafik: 3D → tukar 2D (ringan)', 'gfx'], ['🌐 Online', 'online'], ['🏆 Pencapaian · Achievements', 'ach'], ['💾 Simpanan · Save backup', 'savedata'], ['Kredit · Credits', 'credits'], ['Mula semula · Restart', 'reset'], ['Tutup · Close', 'ok', true]] });
   if (v === 'help') return howTo();
   if (v === 'music') { setMusic(S.music === false); toast(S.music === false ? 'Muzik ditutup' : 'Muzik dibuka', S.music === false ? 'Music off' : 'Music on'); return; }
   if (v === 'acts') {
@@ -589,6 +601,8 @@ $('menuBtn').onclick = async () => {
   if (v === 'time') { S.timeMode = S.timeMode === 'day' ? 'real' : 'day'; save(); toast(S.timeMode === 'day' ? 'Sentiasa siang' : 'Ikut jam sebenar', S.timeMode === 'day' ? 'Always daytime' : 'Follows your real clock'); return; }
   if (v === 'gfx') { S.gfx = S.gfx === '2d' ? '3d' : '2d'; save(); location.reload(); return; }
   if (v === 'savedata') return saveMenu();
+  if (v === 'online') return onlineMenu();
+  if (v === 'ach') return achievementsMenu();
   if (v === 'reset') { const c = await modal({ title: 'Mula semula?', body: 'Semua kemajuan akan hilang. All progress will be lost.', buttons: [['Ya, padam · Yes, erase', 'yes'], ['Batal · Cancel', 'no', true]] }); if (c === 'yes') { wipe(); location.reload(); } }
 };
 // ------------------------------------------------------------ save backup: export to a file, import from a file
@@ -613,11 +627,84 @@ async function saveMenu() {
   let text = ''; try { text = await picked.text(); } catch {}
   const r = parseSave(text);
   if (!r.ok) return modal({ kicker: '💾 IMPORT', title: 'Fail tidak sah', body: 'Ini bukan fail simpanan MyKampung. Kemajuan anda tidak berubah. · This is not a MyKampung save file. Your progress is unchanged.', buttons: [['OK', 'ok', true]] });
-  const d = r.data;
+  return confirmImport(r.data);
+}
+async function confirmImport(d) {
   const c = await modal({ kicker: '💾 IMPORT', title: 'Ganti kemajuan?', html: `<p>Fail ini: <b>Bab ${d.chapter}</b> · ⭐ ${d.stars || 0} · ${fmtRM(d.coins)}</p><p>Sekarang: <b>Bab ${S.chapter}</b> · ⭐ ${S.stars} · ${fmtRM(balance())}</p><p class="muted">Kemajuan sekarang akan diganti. · Your current progress will be replaced by this file.</p>`, buttons: [['Ya, import · Yes, import', 'yes'], ['Batal · Cancel', 'no', true]] });
   if (c !== 'yes') return;
   if (importSave(d)) location.reload(); else toast('Import gagal', 'Import failed — storage is full or blocked');
 }
+
+// ------------------------------------------------------------ achievements & daily login (js/progress.js)
+function checkAchievements() {
+  for (const a of newAchievements(S)) { (S.ach ||= {})[a.id] = Date.now(); addCoins(a.rm, 'pencapaian ' + a.id); toast(`🏆 ${a.bm} · +${fmtRM(a.rm)}`, a.en); }
+}
+function achievementsMenu() {
+  const got = S.ach || {}, rows = ACHIEVEMENTS.map(a => `<li class="${got[a.id] ? '' : 'locked'}">${got[a.id] ? '🏆' : '🔒'} <b>${a.bm}</b> <small>${a.en} · ${fmtRM(a.rm)}</small></li>`).join('');
+  return modal({ kicker: 'PENCAPAIAN · ACHIEVEMENTS', title: `${Object.keys(got).length}/${ACHIEVEMENTS.length}`, html: `<ul class="catchList book">${rows}</ul><p class="muted small">Log masuk harian: ${(S.login || {}).streak || 0} hari berturut-turut. · Daily login streak.</p>`, buttons: [['Tutup · Close', 'ok', true]] });
+}
+function dailyLogin() {
+  if (net && net.state.status === 'online' && netAccount) return; // online accounts claim through the server
+  const r = claimDaily(S); if (!r.ok) { if (r.reason === 'clock') toast('Jam peranti tidak betul', 'Your device clock looks wrong, daily reward skipped'); return; }
+  addCoins(r.reward, 'harian'); save(); toast(`🎁 Hadiah harian +${fmtRM(r.reward)}`, `Daily reward · day ${r.streak} streak`); checkAchievements();
+}
+
+// ------------------------------------------------------------ nearby Talk button (tap-to-talk still works)
+setInterval(() => {
+  const b = $('talkBtn'); if (!b) return; const id = !ui.busy && $('game').hidden && town.nearNpc ? town.nearNpc() : null;
+  b.hidden = !id; if (id && b.dataset.id !== id) { b.dataset.id = id; b.textContent = `💬 Cakap · ${NPCS[id] ? NPCS[id].name : ''}`; }
+}, 300);
+$('talkBtn').onclick = () => { const id = $('talkBtn').dataset.id; if (id) onTap({ type: 'npc', id }); };
+
+// ------------------------------------------------------------ online village (js/net.js + server/)
+let net = null, netAccount = false;
+function netChip() { const c = $('netChip'); if (!net) { c.hidden = true; $('emoteBtn').hidden = true; return; } c.hidden = false; const n = net.state.players.size + 1;
+  c.textContent = net.state.status === 'online' ? `🌐 ${n}/${net.cap || 10}` : net.state.status === 'offline' ? '🌐 ✕' : '🌐 …'; $('emoteBtn').hidden = net.state.status !== 'online'; }
+async function supabaseLogin() {
+  const email = (prompt('E-mel untuk log masuk · Email to sign in') || '').trim(); if (!/^\S+@\S+\.\S+$/.test(email)) return null;
+  const h = { apikey: SUPABASE_ANON_KEY, 'content-type': 'application/json' };
+  const r1 = await fetch(`${SUPABASE_URL}/auth/v1/otp`, { method: 'POST', headers: h, body: JSON.stringify({ email, create_user: true }) }).catch(() => null);
+  if (!r1 || !r1.ok) { toast('Gagal hantar kod', 'Could not send the code'); return null; }
+  const code = (prompt('Masukkan kod dari e-mel · Enter the code from your email') || '').trim(); if (!code) return null;
+  const r2 = await fetch(`${SUPABASE_URL}/auth/v1/verify`, { method: 'POST', headers: h, body: JSON.stringify({ type: 'email', email, token: code }) }).catch(() => null);
+  const j = r2 && r2.ok ? await r2.json() : null; if (!j || !j.access_token) { toast('Kod salah', 'Wrong code'); return null; }
+  try { sessionStorage.setItem('mk_token', j.access_token); } catch { } return j.access_token;
+}
+function goOnline(name, token) {
+  S.playerName = name; save(); netAccount = !!token;
+  net = netConnect({ name, token, getPos: () => town.heroPos && town.heroPos(), on: {
+    status: () => netChip(),
+    welcome: (m) => { net.cap = m.cap; netAccount = m.account; toast(m.resumed ? '🌐 Bersambung semula' : '🌐 Anda dalam talian!', m.resumed ? 'Reconnected' : `Room "${m.room}" · ${m.players.length + 1}/${m.cap}`); if (m.account && !m.resumed) net.claimDaily(); },
+    players: (list) => { town.setRemotes && town.setRemotes(list); netChip(); },
+    emote: (id, e) => town.remoteEmote && town.remoteEmote(id, e),
+    pos: (x, z) => town.walkTo && town.walkTo(x, z),
+    error: (code) => toast(code === 'full' ? 'Bilik penuh' : code === 'auth' ? 'Log masuk diperlukan' : 'Ralat talian', code === 'full' ? 'The room is full, try later' : code === 'auth' ? 'Please sign in' : code),
+    claim: (m) => { if (m.ok && (S.login || {}).day !== myDay(Date.now())) { S.login = { day: myDay(Date.now()), lastTs: Date.now(), streak: m.streak }; addCoins(m.reward, 'harian online'); save(); toast(`🎁 Hadiah harian +${fmtRM(m.reward)}`, `Daily reward (server) · day ${m.streak}`); checkAchievements(); } },
+    saved: (m) => toast(m.ok ? '☁️ Disimpan ke awan' : 'Simpanan awan gagal', m.ok ? 'Saved to the cloud' : m.reason),
+    cloud: (m) => { if (!m.ok || !m.save) return toast('Tiada simpanan awan', 'No cloud save yet'); const r = parseSave(JSON.stringify(m.save.data)); if (r.ok) confirmImport(r.data); },
+  } });
+  netChip();
+}
+async function onlineMenu() {
+  if (!serverUrl()) return modal({ kicker: '🌐 ONLINE', title: 'Belum tersedia', body: 'Server multiplayer belum disediakan untuk laman ini. Permainan offline berjalan seperti biasa. · The multiplayer server is not configured for this site yet; offline play works as usual.', buttons: [['OK', 'ok', true]] });
+  if (net && net.state.status !== 'offline') {
+    const v = await modal({ kicker: '🌐 ONLINE', title: `${net.state.players.size + 1} pemain · players`, body: netAccount ? 'Akaun: kemajuan boleh disimpan ke awan. · Signed in: cloud save available.' : 'Tetamu: log masuk untuk simpanan awan dan hadiah server. · Guest: sign in for cloud save and server rewards.', buttons: [['😄 Emote', 'emote', true], ...(netAccount ? [['☁️ Simpan ke awan', 'up'], ['☁️ Muat dari awan', 'down']] : []), ['Putus · Disconnect', 'off'], ['Tutup', 'ok']] });
+    if (v === 'emote') return emoteMenu(); if (v === 'up') return net.saveCloud(JSON.parse(exportSave()).data); if (v === 'down') return net.loadCloud();
+    if (v === 'off') { net.close(); net = null; town.setRemotes && town.setRemotes([]); netChip(); }
+    return;
+  }
+  const v = await modal({ kicker: '🌐 ONLINE', title: 'Main bersama', html: `<p>Nama · Name: <input id="mpName" maxlength="16" value="${String(S.playerName || '').replace(/[^\p{L}\p{N} _-]/gu, '')}" style="font:inherit;padding:6px;border-radius:8px;border:1px solid #ccc;width:60%"></p><p class="muted small">Pemain lain nampak nama dan watak anda di kampung. Simpanan anda kekal dalam peranti ini. · Other players see your name and hero. Your save stays on this device.</p>`, buttons: [['Main sebagai tetamu · Guest', 'guest', true], ...(SUPABASE_URL ? [['Log masuk · Sign in', 'login']] : []), ['Batal', 'no']] });
+  const name = ((document.getElementById('mpName') || {}).value || S.playerName || 'Pemain').trim().slice(0, 16) || 'Pemain';
+  if (v === 'guest') return goOnline(name, '');
+  if (v === 'login') { let tok = ''; try { tok = sessionStorage.getItem('mk_token') || ''; } catch { } tok = tok || await supabaseLogin(); if (tok) goOnline(name, tok); }
+}
+async function emoteMenu() {
+  const e = await modal({ kicker: '😄 EMOTE', title: 'Pilih emote', buttons: ['👋', '😄', '👍', '🎉', '❤️', '🙏'].map(x => [x, x]).concat([['Tutup', 'ok', true]]) });
+  if (e && e !== 'ok' && net) { net.emote(e); town.heroEmote && town.heroEmote(e); }
+}
+$('netChip').onclick = () => onlineMenu(); $('emoteBtn').onclick = () => emoteMenu();
+setInterval(checkAchievements, 5000);
+
 function howTo() {
   return modal({ kicker: 'CARA MAIN · HOW TO PLAY', title: 'Selamat datang!', html: `<ul class="help">
     <li><b>Peta</b> — seret untuk alih, cubit / roda tetikus / butang + − untuk zum. <small>Drag to pan, pinch or scroll to zoom.</small></li>
@@ -653,6 +740,7 @@ async function start() {
     await modal({ kicker: 'BAB BARU · NEW CHAPTER', title: `Bab ${S.chapter} · ${chap().bm}`, html: `<p>${bm}</p><p class="muted">${en}</p>`, buttons: [['Jom! · Let\'s go!', 'ok', true]] });
   }
   showMission();
+  setTimeout(dailyLogin, 3500);
   if (saveStatus() === 'restored') setTimeout(() => toast('💾 Simpanan dipulihkan', 'Your save was damaged and has been restored from the backup'), 2800); // after the mission toast
 }
 // ------------------------------------------------------------ outdated tab: another tab saved newer progress

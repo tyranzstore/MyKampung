@@ -35,6 +35,13 @@ export const NPCS3D = {
   abu: { i: 21.3, j: 26.4, look: { shirt: 0x95a5a6, pants: 0x2c3e50, skin: 0xa8703e, songkok: true } },
   kaklong: { i: 36.75, j: 8.5, look: { shirt: 0xf6a5c0, pants: 0x6c3483, skin: 0xc68a5a, tudung: 0xd35400, sarong: true } },
   mat: { i: 11.7, j: 4.4, look: { shirt: 0xf39c12, pants: 0x34495e, skin: 0x8d5a34, cap: 0xecf0f1, beard: true } },
+  // new villagers (v2.1). sched: [fromHour, toHour, i, j] — where they are during the day; outside every slot they are at home (hidden)
+  eby: { i: 8.6, j: 37.4, look: { shirt: 0x1f3a6b, pants: 0x1f3a6b, skin: 0xc68a5a, tudung: 0x2c3e70, sarong: true }, sched: [[7, 14, 8.6, 37.4], [14, 19, 9.5, 45.8]] },
+  ngoh: { i: 22.4, j: 11.6, look: { shirt: 0x9fc5e8, pants: 0x222222, skin: 0xc68a5a, tudung: 0x111111 }, sched: [[6, 12, 22.4, 11.6], [12, 17, 21.6, 8.9], [17, 23, 34.6, 16.4]] },
+  yah: { i: 22.6, j: 8.9, look: { shirt: 0x22305a, pants: 0x22305a, skin: 0xc78b5a, tudung: 0xb9a5c9, sarong: true }, sched: [[8, 18, 22.6, 8.9], [18, 21, 28.3, 10.9]] },
+  yaya: { i: 5.2, j: 37.4, look: { shirt: 0x8a4b2f, pants: 0x8a4b2f, skin: 0xc68a5a, tudung: 0x9c2f2f, kid: true, sarong: true }, sched: [[7, 13, 5.2, 37.4], [15, 19, 36.2, 44.8]] },
+  seola: { i: 3.6, j: 37.4, look: { shirt: 0xa9c4e0, pants: 0x333333, skin: 0xe8c3a0, hair: 0x3b2a1f, kid: true }, sched: [[7, 13, 3.6, 37.4], [15, 19, 8.2, 45.8]] },
+  taeyang: { i: 10.6, j: 37.4, look: { shirt: 0xc0392b, pants: 0x222222, skin: 0xe0b08a, hair: 0x2a1a10, kid: true }, sched: [[7, 13, 10.6, 37.4], [16, 19, 42.6, 16.4]] },
 };
 const VILLAGERS = [
   { shirt: 0x27ae60, pants: 0x34495e, skin: 0xc68a5a, hair: 0x222222 }, { shirt: 0xf1c40f, pants: 0x5d4037, skin: 0xa8703e, songkok: true },
@@ -387,7 +394,7 @@ export async function createTown3D(canvas, hooks) {
   const yardMeshes = {};
   const bladeGeo = new T.ConeGeometry(.07, .9, 3); bladeGeo.translate(0, .45, 0);
   function buildYard(id, cut) {
-    if (yardMeshes[id]) { ground.remove(yardMeshes[id]); yardMeshes[id].geometry !== bladeGeo && yardMeshes[id].geometry.dispose(); }
+    if (yardMeshes[id]) { ground.remove(yardMeshes[id]); yardMeshes[id].traverse(o => { if (o.geometry && o.geometry !== bladeGeo) o.geometry.dispose(); }); }
     const y = YARDS[id], [a, b] = W(y.i0, y.j0), [c, d] = W(y.i1, y.j1), g = new T.Group();
     const base = gk.add(new T.PlaneGeometry(c - a, d - b), new T.MeshStandardMaterial({ map: X.grass, color: cut ? 0x9ad66f : 0x5f9a3c, roughness: .95 }), (a + c) / 2, .015, (b + d) / 2, g, false); base.rotation.x = -Math.PI / 2;
     if (!cut) {
@@ -626,14 +633,22 @@ export async function createTown3D(canvas, hooks) {
   // The simple figure is only hidden, never removed: if loading fails it simply stays. Same group, so position,
   // visibility, tapping, markers and the hero's walk target are unchanged. Models face +Z like the simple figures.
   // abu stands at i 21.3 / j 26.4 (NPCS3D): his old spot (25.6 / 26.2) was hidden behind a tree from the village camera.
-  const NPC_MODELS = { abu: { url: 'assets/characters/pok_ajis/PokAjis.glb', h: 1.6 } }; // Pok Ajis
-  const later = (f) => (window.requestIdleCallback ? requestIdleCallback(f, { timeout: 2500 }) : setTimeout(f, 1200));
-  for (const [id, spec] of Object.entries(NPC_MODELS)) later(() => loadGLB(spec.url).then((src) => {
+  const C = 'assets/characters/';
+  const NPC_MODELS = {
+    abah: { url: C + 'tok_abah/TokAbah.glb', h: 1.62 }, kiah: { url: C + 'nek_ma/NekMa.glb', h: 1.52 }, din: { url: C + 'pok_wan/PokWan.glb', h: 1.68 },
+    abu: { url: C + 'pok_ajis/PokAjis.glb', h: 1.6 }, eby: { url: C + 'cikgu_eby/CikguEby.glb', h: 1.58 }, ngoh: { url: C + 'mok_ngoh/MokNgoh.glb', h: 1.58 },
+    yah: { url: C + 'mok_yah/MokYah.glb', h: 1.58 }, yaya: { url: C + 'yaya/Yaya.glb', h: 1.12 }, seola: { url: C + 'seola/Seola.glb', h: 1.15 }, taeyang: { url: C + 'taeyang/Taeyang.glb', h: 1.12 },
+  };
+  // Lazy: a model is fetched the first time its NPC is visible on screen (checked twice a second in frame()),
+  // so a phone only downloads the villagers it actually sees. Zoomed far out, the cheap figure is shown instead (LOD).
+  const pendingModels = new Map(Object.entries(NPC_MODELS)); let modelCheckT = 0, farLOD = null;
+  const loadNpcModel = (id, spec) => loadGLB(spec.url).then((src) => {
     const p = npcs[id]; if (!src || !p || p.model) return;
     const m = src.clone(true); m.scale.setScalar(spec.h / Math.max(.01, src.userData.size.y));
-    for (const c of p.body.children) c.visible = false;
+    p.simple = [...p.body.children]; for (const c of p.simple) c.visible = false; farLOD = null; // re-apply LOD next frame
+    m.scale.divideScalar(p.body.scale.x); // kids' simple body is scaled down; the model height is absolute
     p.body.add(m); p.model = m; // inside body: keeps the gentle idle bob; no skeletal animation is invented
-  }));
+  });
   const rnd = mulberry32(5);
   const walkers = VILLAGERS.map((look, k) => { const p = makePerson(kp, look); scene.add(p.g); return { p, axis: k % 2 ? 'i' : 'j', lane: k % 2 ? (k % 4 === 1 ? 15.75 : 18.35) : (k % 4 === 0 ? 13.7 : 16.3), pos: 6 + rnd() * 20, dir: rnd() > .5 ? 1 : -1, speed: .35 + rnd() * .2, pause: 0, id: 'villager' + k }; });
   const traffic = (key, fallbackCol, police) => { const tmp = new T.Group(); const m = putModel(M, key, tmp, 0, 0, { len: 2.5, face: 'x' }); if (m) { tmp.remove(m); return m; } return carModel(kp, fallbackCol, police); };
@@ -683,7 +698,7 @@ export async function createTown3D(canvas, hooks) {
     const lg = new T.BufferGeometry().setFromPoints([new T.Vector3(0, 0, 0), new T.Vector3(-3, -h + .8, 11)]); g.add(new T.Line(lg, new T.LineBasicMaterial({ color: 0x555555 }))); return { g, h, ph: x }; });
   // the player (TYRANZ hero) waits beside the current mission
   const hero = (() => { const tmp = new T.Group(); const m = putModel(M, 'hero', tmp, 0, 0, { h: 1.5 }); if (!m) return null; tmp.remove(m); scene.add(m); m.visible = false; return m; })();
-  let heroGoal = null, heroWalk = 0;
+  let heroGoal = null, heroWalk = 0, manual = null, manualFor = null, schedT = 0; // manual: where the player tapped to walk
   function heroSpot() {
     const id = hooks.heroAt && hooks.heroAt(); if (!id) return null;
     if (npcs[id] && npcs[id].g.visible !== false) { const p = npcs[id].g.position; return new T.Vector3(p.x + 1.15, 0, p.z + 1.15); }
@@ -731,6 +746,7 @@ export async function createTown3D(canvas, hooks) {
     hit = rc.intersectObjects(pickBoxes, false)[0];
     if (hit) return hooks.onTap({ type: 'place', id: hit.object.userData.id });
     if (rc.ray.intersectPlane(gp, hp)) { const ti = hp.x / TS + N / 2, tj = hp.z / TS + N / 2; for (const [id, a] of Object.entries(AREAS)) if (ti >= a.i0 && ti < a.i1 && tj >= a.j0 && tj < a.j1) return hooks.onTap({ type: 'place', id }); }
+    if (rc.ray.intersectPlane(gp, hp)) return hooks.onTap({ type: 'ground', x: hp.x, z: hp.z });
     hooks.onTap(null);
   }
   walkers.forEach(w => { w.p.g.userData.walker = w.id; });
@@ -773,7 +789,10 @@ export async function createTown3D(canvas, hooks) {
     if (goal) { const k = Math.min(1, dt * 4); target.x = lerp(target.x, goal.x, k); target.z = lerp(target.z, goal.z, k); zoom = lerp(zoom, goal.zoom, k); if (Math.hypot(target.x - goal.x, target.z - goal.z) < .02) goal = null; }
     pulseT = Math.max(0, pulseT - dt);
     // people
-    for (const [id, p] of Object.entries(npcs)) { p.g.visible = hooks.npcVisible(id); p.body.position.y = Math.abs(Math.sin(t * 2 + p.g.position.x)) * .03; p.arms[0].rotation.x = Math.sin(t * 1.6 + p.g.position.z) * .15; }
+    if (t - schedT > 2 || schedT === 0) { schedT = t; const h = timeOfDay().h; for (const [id, n] of Object.entries(NPCS3D)) { if (!n.sched) continue; const slot = n.sched.find(([a, b]) => h >= a && h < b); npcs[id].away = !slot; if (slot) { const [x, z] = W(slot[2], slot[3]); npcs[id].g.position.set(x, 0, z); } } }
+    if (t - modelCheckT > .5 && pendingModels.size) { modelCheckT = t; for (const [id, spec] of pendingModels) { const p = npcs[id]; if (!p || !p.g.visible) continue; const a = toScreen(v3.copy(p.g.position)); if (a.vis) { pendingModels.delete(id); loadNpcModel(id, spec); } } }
+    const far = zoom < .7; if (far !== farLOD) { farLOD = far; for (const p of Object.values(npcs)) if (p.model) { p.model.visible = !far; for (const c of p.simple) c.visible = far; } }
+    for (const [id, p] of Object.entries(npcs)) { p.g.visible = hooks.npcVisible(id) && !p.away; p.body.position.y = Math.abs(Math.sin(t * 2 + p.g.position.x)) * .03; p.arms[0].rotation.x = Math.sin(t * 1.6 + p.g.position.z) * .15; }
     for (const w of walkers) {
       if (w.pause > 0) { w.pause -= dt; w.p.legs.forEach(l => { l.rotation.x *= .8; }); }
       else { w.pos += w.dir * w.speed * dt; const [lo, hi] = w.axis === 'j' ? [6, 29] : [4, 29]; if (w.pos < lo || w.pos > hi) { w.dir *= -1; w.pos = clamp(w.pos, lo, hi); } if (rnd() < dt * .06) w.pause = 1 + rnd() * 3;
@@ -784,7 +803,8 @@ export async function createTown3D(canvas, hooks) {
     for (const c of cars) { if (c.bus) { const was = c.pos; if (c.wait > 0) c.wait -= dt; else c.pos += c.dir * 1.3 * dt; if (was > 18.6 && c.pos <= 18.6) c.wait = 4; } else c.pos += c.dir * 1.6 * dt; if (c.pos > 31) c.pos = 4; if (c.pos < 4) c.pos = 31;
       const [x, z] = c.axis === 'i' ? W(c.pos, c.lane) : W(c.lane, c.pos); c.m.position.set(x, 0, z); c.m.rotation.y = c.axis === 'i' ? (c.dir > 0 ? 0 : Math.PI) : (c.dir > 0 ? -Math.PI / 2 : Math.PI / 2); }
     if (hero) {
-      if (!heroGoal || (t % 1 < dt)) heroGoal = heroSpot() || heroGoal;
+      if (manual && hooks.heroAt && hooks.heroAt() !== manualFor) manual = null; // a new mission target ends the free walk
+      if (manual) heroGoal = manual; else if (!heroGoal || (t % 1 < dt)) heroGoal = heroSpot() || heroGoal;
       if (heroGoal) { if (!hero.visible) { hero.position.copy(heroGoal); hero.visible = true; }
         const d = heroGoal.clone().sub(hero.position); d.y = 0; const L = d.length();
         if (L > .05) { if (L > 25) hero.position.copy(heroGoal); else { hero.position.addScaledVector(d, Math.min(1, 4 * dt / L)); hero.rotation.y = Math.atan2(d.x, d.z); heroWalk += dt * 10; hero.position.y = Math.abs(Math.sin(heroWalk)) * .08; } }
@@ -797,6 +817,7 @@ export async function createTown3D(canvas, hooks) {
     else if (bridge.st === 'closing') { bridge.k = Math.max(0, bridge.k - dt / 3.5); if (bridge.k <= 0) { bridge.st = 'down'; bridge.t = bridge.cb ? 0 : 80; } }
     for (const l of leaves) l.p.rotation.z = l.dir * bridge.k * 1.2;
     updateLife(dt); updateFw(dt);
+    for (const r of remotes.values()) { const d = r.goal.clone().sub(r.g.position); const L = d.length(); if (L > 12) r.g.position.copy(r.goal); else if (L > .02) { r.g.position.addScaledVector(d, Math.min(1, dt * 6)); r.g.rotation.y = Math.atan2(d.x, d.z); } }
     if (hooks.flags().festivalDone && (fwNight -= dt) <= 0) { fwNight = 25 + rnd() * 20; const h = new Date().getHours(); if ((h >= 20 || h < 1) && !hooks.flags().alwaysDay) fireworks(3); } // festival nights
     for (const w of waus) { w.g.position.y = w.h + Math.sin(t * .9 + w.ph) * .6; w.g.rotation.z = Math.sin(t * 1.3 + w.ph) * .25; }
     if (plane) { if (planeF < 0 && (planeT -= dt) <= 0) planeF = 0; if (planeF >= 0) { planeF += dt / 14; plane.position.set(-70 + planeF * 140, 38, 40 - planeF * 110); plane.rotation.y = Math.atan2(140, -110); if (planeF >= 1) { planeF = -1; planeT = 40; plane.position.z = -500; } } }
@@ -818,6 +839,10 @@ export async function createTown3D(canvas, hooks) {
     const cand = [];
     for (const m of hooks.markers()) { const a = anchor(m.id); if (!a || !a.vis) continue; const pr = m.type === 'mission' ? 0 : m.type === 'job' ? 1 : m.type === 'act' ? 2 : 3;
       cand.push({ pr, key: 'mk' + m.id + m.type, cls: 'mk ' + m.type, html: m.type === 'mission' ? '!' : m.text, x: a.x, y: a.y - 24 + (m.type === 'mission' ? Math.sin(t * 4 + a.x) * 3 : 0), w: m.type === 'mission' ? 30 : m.type === 'act' ? 28 : (m.text.length * 6.5 + 18), h: m.type === 'mission' ? 30 : 22, c: true }); }
+    if (zoom > 1.05 && hooks.npcName) for (const [id, p] of Object.entries(npcs)) { if (!p.g.visible) continue; const a = toScreen(v3.copy(p.g.position).setY(p.model ? 1.95 : 2.1)); if (a.vis) cand.push({ pr: 3, key: 'nm' + id, cls: 'mk lbl npc', html: hooks.npcName(id), x: a.x, y: a.y, w: hooks.npcName(id).length * 6 + 18, h: 20, c: true }); }
+    for (const [rid, r] of remotes) { const a = toScreen(v3.copy(r.g.position).setY(2.0)); if (!a.vis) continue; cand.push({ pr: 0, key: 'rp' + rid, cls: 'mk lbl player', html: r.name, x: a.x, y: a.y, w: r.name.length * 6 + 18, h: 20, c: true });
+      if (r.emote && r.emoteT > t) cand.push({ pr: 0, key: 're' + rid, cls: 'mk emote', html: r.emote, x: a.x, y: a.y - 26, w: 30, h: 30, c: true }); }
+    if (heroEmote && heroEmote.t > t && hero && hero.visible) { const a = toScreen(v3.copy(hero.position).setY(2.0)); if (a.vis) cand.push({ pr: 0, key: 'heroEmote', cls: 'mk emote', html: heroEmote.e, x: a.x, y: a.y - 6, w: 30, h: 30, c: true }); }
     if (zoom > 1.05) for (const [id, o] of Object.entries(objects)) { if (!o.label) continue; const a = anchor(id); if (a && a.vis) cand.push({ pr: 4, key: 'lb' + id, cls: 'mk lbl', html: o.label, x: a.x, y: a.y + 14, w: o.label.length * 6 + 18, h: 20, c: true }); }
     cand.sort((p, q) => p.pr - q.pr);
     for (const c of cand) if (free(c.x, c.y, c.w, c.h)) el(c.key, c.cls, c.html).style.transform = `translate(${c.x}px,${c.y}px) translate(-50%,-50%)`;
@@ -827,6 +852,7 @@ export async function createTown3D(canvas, hooks) {
   }
 
   // Bab 5 fireworks: coloured bursts over the Balai Raya (also on festival nights after the chapter)
+  const remotes = new Map(); let heroEmote = null;
   const fw = []; const fwGeo = new T.SphereGeometry(.18, 6, 4);
   function fireworks(n = 10) { const a = AREAS.balai || { i0: 24, i1: 28, j0: 19, j1: 21 }; const [cx, cz] = W((a.i0 + a.i1) / 2, (a.j0 + a.j1) / 2);
     for (let b = 0; b < n; b++) setTimeout(() => { const col = [0xff4d4d, 0xffd452, 0x4dd2ff, 0x7dff9a, 0xff7ae0][b % 5], ox = cx + (rnd() - .5) * 14, oz = cz + (rnd() - .5) * 10, oy = 14 + rnd() * 6;
@@ -840,6 +866,17 @@ export async function createTown3D(canvas, hooks) {
   return {
     rebuild, frame, focus, anchor, timeOfDay, is3D: true, openBridge, fireworks, bridgeState: () => bridge.st,
     npcModel: (id) => !!(npcs[id] && npcs[id].model), // true once a detailed model replaced the simple figure
+    walkTo(x, z) { manual = new T.Vector3(clamp(x, -30, 74), 0, clamp(z, -30, 70)); manualFor = hooks.heroAt && hooks.heroAt(); },
+    heroPos: () => (hero && hero.visible ? { x: +hero.position.x.toFixed(2), z: +hero.position.z.toFixed(2) } : null),
+    nearNpc(maxD = 2.6) { if (!hero || !hero.visible) return null; let best = null, bd = maxD; for (const [id, p] of Object.entries(npcs)) { if (!p.g.visible) continue; const d = Math.hypot(p.g.position.x - hero.position.x, p.g.position.z - hero.position.z); if (d < bd) { bd = d; best = id; } } return best; },
+    heroEmote(e) { heroEmote = { e, t: t + 3 }; },
+    // other online players: [{ id, name, x, z }] — avatars are the TYRANZ hero model (static, like the local hero)
+    setRemotes(list) { const seen = new Set(); for (const p of list) { seen.add(p.id); let r = remotes.get(p.id);
+        if (!r) { const g = new T.Group(); const m = putModel(M, 'hero', g, 0, 0, { h: 1.5 }); if (!m) kp.box(.5, 1.5, .3, kp.vc(0x2e86de), 0, .75, 0, g); g.position.set(p.x, 0, p.z); scene.add(g); r = { g, goal: new T.Vector3(p.x, 0, p.z) }; remotes.set(p.id, r); }
+        r.name = String(p.name || 'Pemain').slice(0, 16); r.goal.set(p.x, 0, p.z); }
+      for (const [id, r] of remotes) if (!seen.has(id)) { scene.remove(r.g); remotes.delete(id); } },
+    remoteEmote(id, e) { const r = remotes.get(id); if (r) { r.emote = e; r.emoteT = t + 3; } },
+    placeInfo: () => Object.fromEntries(Object.entries(objects).map(([id, o]) => { const c = o.box.getCenter(new T.Vector3()), z = o.box.getSize(new T.Vector3()); return [id, { i: +(c.x / TS + N / 2).toFixed(1), j: +(c.z / TS + N / 2).toFixed(1), w: +(z.x / TS).toFixed(1), d: +(z.z / TS).toFixed(1) }]; })),
     zoomBy(f) { zoom *= f; clampT(); goal = null; },
     cam: view,
     hide(v) { canvas.style.visibility = v ? 'hidden' : 'visible'; layer.style.visibility = v ? 'hidden' : 'visible'; },

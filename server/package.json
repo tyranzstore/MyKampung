@@ -1,0 +1,11 @@
+{
+  "name": "mykampung-server",
+  "private": true,
+  "version": "0.1.0",
+  "description": "MyKampung multiplayer room server (WebSocket). Deployed separately from the Netlify site.",
+  "type": "module",
+  "main": "index.js",
+  "engines": { "node": ">=20" },
+  "scripts": { "start": "node index.js" },
+  "dependencies": { "ws": "8.18.0" }
+}

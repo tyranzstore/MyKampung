@@ -20,7 +20,8 @@ test('TokAbah.glb: validated if supplied, otherwise reported as waiting', () => 
 });
 
 test('the game does not load TokAbah.glb before a validated file exists', () => {
-  const users = jsFiles.filter(f => /TokAbah(\.glb)?['"`]/.test(src(f)) || /tyranz\/TokAbah/.test(src(f)));
+  // the rigged Phase-1 model (assets/tyranz/TokAbah.glb); the static model in assets/characters/tok_abah is separate
+  const users = jsFiles.filter(f => /tyranz\/TokAbah/.test(src(f)));
   if (!users.length) return;
   assert.ok(existsSync(ASSET), `${users.join(', ')} reference TokAbah.glb but ${ASSET} is missing`);
   assert.equal(checkGlb(readFileSync(ASSET), SPECS.tokabah).ok, true, `${users.join(', ')} reference TokAbah.glb but it fails validation`);
@@ -67,9 +68,10 @@ test('the validator rejects the current static hero as a Tok Abah model (no rig,
 });
 
 test('every detailed NPC model the game loads exists and passes the validator', () => {
-  const town = src('js/town3d.js'), block = (town.match(/const NPC_MODELS = \{([^\n]*)\};/) || [])[1];
+  const town = src('js/town3d.js'), block = (town.match(/const NPC_MODELS = \{([\s\S]*?)\n  \};/) || [])[1];
   assert.ok(block, 'NPC_MODELS in town3d.js');
-  const entries = [...block.matchAll(/(\w+):\s*\{\s*url:\s*'([^']+)'/g)].map(m => ({ id: m[1], url: m[2] }));
+  const C = (town.match(/const C = '([^']+)'/) || [])[1];
+  const entries = [...block.matchAll(/(\w+):\s*\{\s*url:\s*(?:C \+ )?'([^']+)'/g)].map(m => ({ id: m[1], url: (/C \+ '/.test(m[0]) ? C : '') + m[2] }));
   assert.ok(entries.length >= 1);
   for (const { id, url } of entries) {
     assert.match(town, new RegExp(`NPCS3D = \\{[\\s\\S]*?${id}:\\s*\\{`), `${id} is an existing NPC (no duplicate character)`);
@@ -78,6 +80,19 @@ test('every detailed NPC model the game loads exists and passes the validator', 
     assert.equal(r.ok, true, `${url}: ${r.results.filter(x => x.level === 'FAIL').map(x => x.id).join(', ')}`);
     notes.push(`${id} → ${url} passes (${r.stats.fileMB} MB, ${r.stats.triangles} tris, ${r.stats.gpuTextureMB} MB GPU textures)`);
   }
+});
+
+test('canonical NPC identities: one NPC per name, with a validated model and its original kept', () => {
+  const town2d = src('js/town.js'), town = src('js/town3d.js');
+  const MAP = { abah: 'Tok Abah', kiah: 'Nek Ma', din: 'Pok Wan', abu: 'Pok Ajis', eby: 'Cikgu Eby', ngoh: 'Mok Ngoh', yah: 'Mok Yah', yaya: 'Yaya', seola: 'Seola', taeyang: 'Taeyang' };
+  const names = [...town2d.matchAll(/^  (\w+): \{ name: '([^']+)'/gm)].map(m => [m[1], m[2]]);
+  for (const [id, name] of Object.entries(MAP)) {
+    assert.deepEqual(names.filter(n => n[1] === name), [[id, name]], `${name} is exactly one NPC with id ${id}`);
+    assert.match(town, new RegExp(`\\n  ${id}: \\{ (url: C|i: )`), `${id} in town3d`);
+  }
+  assert.ok(names.some(([id, n]) => id === 'ani' && n === 'Cikgu Aqilah'), 'Cikgu Aqilah kept (no evidence she is Cikgu Eby)');
+  for (const dir of ['tok_abah', 'nek_ma', 'pok_wan', 'pok_ajis', 'mok_ngoh', 'mok_yah', 'cikgu_eby', 'yaya', 'seola', 'taeyang'])
+    assert.ok(readdirSync('assets/characters/' + dir).some(f => f.endsWith('_source.glb')), `${dir}: original kept`);
 });
 
 test('Pok Ajis: same character (id abu), renamed for display only, no duplicate, original kept for future upgrades', () => {
