@@ -54,22 +54,28 @@ export const saveStats = () => ({ ...stats });
 const diskAt = () => { const o = read(KEY); return o && num(o.savedAt, 0) ? o.savedAt : 0; }; // only a valid save counts
 // true when another tab saved after this one: Continue reloads so the player gets the latest save
 export const newerOnDisk = () => diskAt() > myAt;
+// Outdated tab: another tab saved newer progress (or restarted/imported). This tab then never saves again
+// and tells its listeners once (main.js shows a blocking "Muat Semula" pop-up). Only a reload clears it.
+let stale = false; const staleFns = new Set();
+export const isStale = () => stale;
+export function onStale(fn) { staleFns.add(fn); if (stale) try { fn(); } catch {} return () => staleFns.delete(fn); }
+function markStale() { if (stale || frozen) return; stale = true; for (const fn of staleFns) try { fn(); } catch {} }
+export function checkStale() { if (!stale && !frozen && newerOnDisk()) markStale(); return stale; }
 function warn(kind) {
   if (warned === kind || typeof document === 'undefined') return; warned = kind;
-  setTimeout(() => kind === 'tab' ? toast('⚠️ Permainan dibuka di tab lain', 'The game was saved in another tab. Reload this page to continue.')
-    : toast('⚠️ Kemajuan tidak dapat disimpan', 'Progress could not be saved. Menu → Simpanan to export a backup.'), 0);
+  setTimeout(() => toast('⚠️ Kemajuan tidak dapat disimpan', 'Progress could not be saved. Menu → Simpanan to export a backup.'), 0);
 }
 // save the game. Returns true when the save on disk matches the game (written now or already up to date).
 // quiet: no "Tersimpan ✓" (used for background saves when the tab is hidden).
 export function save({ quiet = false } = {}) {
-  if (frozen) return false;                                    // after Restart / Import: the page is about to reload
+  if (frozen || stale) return false;                           // after Restart / Import, or outdated tab: never write
   if (!S.started && hasProgress) { stats.refused++; return false; } // never replace a real game with a fresh one
   if (!complete(S)) { stats.refused++; warn('save'); return false; }
   const at = S.savedAt; delete S.savedAt; let body;
   try { body = JSON.stringify(S); } catch { body = null; }
   S.savedAt = at; if (body == null) { warn('save'); return false; }
   if (body === lastBody) { stats.skipped++; return true; }    // nothing changed since the last write
-  if (diskAt() > myAt) { stats.refused++; warn('tab'); return false; } // another tab saved newer progress
+  if (diskAt() > myAt) { stats.refused++; markStale(); return false; } // another tab saved newer progress
   const now = Math.max(Date.now(), myAt + 1); S.savedAt = now; const s = JSON.stringify(S);
   if (!put(KEY, s)) { S.savedAt = at; warn('save'); return false; }
   lastBody = body; myAt = now; stats.writes++; if (S.started) hasProgress = true;
@@ -92,8 +98,13 @@ export function startAutosave(env = globalThis) {
   if (armed) return false; armed = true;
   env.setInterval(() => save(), AUTOSAVE_MS);
   const doc = env.document;
-  if (doc && doc.addEventListener) doc.addEventListener('visibilitychange', () => { if (doc.visibilityState === 'hidden') save({ quiet: true }); });
-  if (env.addEventListener) env.addEventListener('pagehide', () => save({ quiet: true })); // iOS Safari: more reliable than visibilitychange on close
+  if (doc && doc.addEventListener) doc.addEventListener('visibilitychange', () => { if (doc.visibilityState === 'hidden') save({ quiet: true }); else checkStale(); });
+  if (env.addEventListener) {
+    env.addEventListener('pagehide', () => save({ quiet: true })); // iOS Safari: more reliable than visibilitychange on close
+    env.addEventListener('pageshow', () => checkStale());          // back/forward cache restore
+    // another tab wrote or removed the save (fires only in the OTHER tabs). Removed = Restart there.
+    env.addEventListener('storage', (e) => { if (!e || e.key !== KEY || frozen) return; if (e.newValue == null) markStale(); else checkStale(); });
+  }
   return true;
 }
 export function wipe() { frozen = true; try { localStorage.removeItem(KEY); localStorage.removeItem(BAK); } catch {} }
@@ -130,6 +141,7 @@ export function audioInit() {
     for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
   } catch { ac = null; }
 }
+export function audioPause() { try { ac && ac.suspend(); } catch {} } // outdated-tab pop-up: silence the game
 export function setMuted(m) { S.muted = m; if (master) master.gain.value = m ? 0 : .5; save(); }
 function tone(f, d = .12, type = 'sine', v = .2, f2 = 0, delay = 0) {
   if (!ac) return; const t = ac.currentTime + delay, o = ac.createOscillator(), g = ac.createGain();
