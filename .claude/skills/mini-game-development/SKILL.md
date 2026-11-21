@@ -1,4 +1,3 @@
-
 ---
 name: mini-game-development
 description: Use when designing, building, integrating, debugging or upgrading mini-games in TYRANZ Kampung Heroes using Three.js for mobile and web.

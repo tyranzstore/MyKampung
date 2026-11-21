@@ -1,4 +1,3 @@
-
 ---
 name: npc-gameplay-ai
 description: Use when implementing or improving NPC behavior, village routines, pathfinding, interactions, dialogue, quests and gameplay AI in TYRANZ Kampung Heroes.

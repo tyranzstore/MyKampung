@@ -1,4 +1,3 @@
-
 ---
 name: mobile-game-optimization
 description: Optimize Three.js mobile gameplay, touch controls, rendering performance, loading, memory usage, and Android/iOS browser compatibility.

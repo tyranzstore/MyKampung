@@ -1,4 +1,3 @@
-
 ---
 name: glb-gltf-asset-integration
 description: Use when importing, inspecting, optimizing, animating or integrating GLB and GLTF 3D assets into TYRANZ Kampung Heroes.

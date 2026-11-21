@@ -1,4 +1,3 @@
-
 ---
 name: game-debugging-code-protection
 description: Use when debugging, refactoring, reviewing, testing or modifying existing TYRANZ Kampung Heroes game code while protecting working features.
