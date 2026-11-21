@@ -1,0 +1,132 @@
+{
+ "name": "Ikan laut HD (fishing activity)",
+ "category": "fish",
+ "models": {
+  "Ikan_Baronang": {
+   "rotation": [
+    90,
+    180,
+    0
+   ]
+  },
+  "Ikan_Bawal_Hitam": {
+   "rotation": [
+    90,
+    180,
+    0
+   ]
+  },
+  "Ikan_Bawal_Putih": {
+   "rotation": [
+    90,
+    180,
+    0
+   ]
+  },
+  "Ikan_Belanak": {
+   "rotation": [
+    90,
+    180,
+    0
+   ]
+  },
+  "Ikan_Cencaru": {
+   "rotation": [
+    90,
+    180,
+    0
+   ]
+  },
+  "Ikan_Duri": {
+   "rotation": [
+    90,
+    180,
+    0
+   ]
+  },
+  "Ikan_Gelama": {
+   "rotation": [
+    90,
+    180,
+    0
+   ]
+  },
+  "Ikan_Jenahak": {
+   "rotation": [
+    90,
+    180,
+    0
+   ]
+  },
+  "Ikan_Kembung": {
+   "rotation": [
+    90,
+    180,
+    0
+   ]
+  },
+  "Ikan_Kerapu": {
+   "rotation": [
+    0,
+    90,
+    0
+   ]
+  },
+  "Ikan_Kerisi": {
+   "rotation": [
+    90,
+    180,
+    0
+   ]
+  },
+  "Ikan_Merah": {
+   "rotation": [
+    90,
+    180,
+    0
+   ]
+  },
+  "Ikan_Pari": {
+   "rotation": [
+    0,
+    90,
+    0
+   ]
+  },
+  "Ikan_Selar_Kuning": {
+   "rotation": [
+    90,
+    180,
+    0
+   ]
+  },
+  "Ikan_Siakap": {
+   "rotation": [
+    90,
+    180,
+    0
+   ]
+  },
+  "Ikan_Talang": {
+   "rotation": [
+    90,
+    180,
+    0
+   ]
+  },
+  "Ikan_Tamban": {
+   "rotation": [
+    90,
+    180,
+    0
+   ]
+  },
+  "Ikan_Yu_Karang": {
+   "rotation": [
+    0,
+    90,
+    0
+   ]
+  }
+ }
+}

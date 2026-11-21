@@ -163,6 +163,28 @@ export function loadPack(packId, { onProgress } = {}) {
   })());
   return packLoads.get(packId);
 }
+// One model of a pack, on demand and once per id (e.g. a single fish species instead of the whole pack). Resolves to the
+// normalized model, or null if it is unknown, invalid, collides with a legacy key or fails to load. Never rejects.
+const modelLoads = new Map();
+export function loadPackModel(packId, id) {
+  if (!modelLoads.has(id)) modelLoads.set(id, (async () => {
+    try {
+      const idx = await loadPackIndex(), m = idx.packs && idx.packs[packId] && idx.packs[packId].models[id];
+      if (!m || m.valid === false || (legacy && id in legacy)) return null;
+      if (!T) T = await import('three');
+      if (!GLTFLoader) ({ GLTFLoader } = await import('three/addons/loaders/GLTFLoader.js'));
+      if (!skClone) try { ({ clone: skClone } = await import('three/addons/utils/SkeletonUtils.js')); } catch { skClone = null; }
+      const g = await new GLTFLoader().loadAsync(m.path);
+      if (!packModels.has(id)) { packModels.set(id, normalize(g, { metalFix: true, scale: m.scale, rotation: m.rotation })); packOwner.set(id, packId); }
+      return packModels.get(id);
+    } catch (e) { console.warn('pack model failed', id, e); modelLoads.delete(id); return null; }
+  })());
+  return modelLoads.get(id);
+}
+// HD sea fish (assets/packs/malaysia-fish-hd, textured): the putModel key for a species id ('Kembung', 'Bawal_Putih', …) once
+// its GLB has loaded. Until then it starts that one download and returns null, so the caller draws the legacy fish_* model.
+export const FISH_HD_PACK = 'malaysia-fish-hd';
+export function hdFish(id) { const k = `${FISH_HD_PACK}/Ikan_${id}`; if (packModels.has(k)) return k; loadPackModel(FISH_HD_PACK, k); return null; }
 // A model by key: legacy models first (once loadModels has resolved), then loaded pack models. null if not loaded.
 export function getModel(key) { return (legacy && legacy[key]) || packModels.get(key) || null; }
 export const loadedPacks = () => [...new Set(packOwner.values())];
@@ -175,7 +197,7 @@ export function unloadPack(packId) {
       if (o.geometry) o.geometry.dispose();
       for (const mat of [].concat(o.material || [])) { for (const v of Object.values(mat)) if (v && v.isTexture) v.dispose(); mat.dispose(); }
     });
-    packModels.delete(id); packOwner.delete(id); n++;
+    packModels.delete(id); packOwner.delete(id); modelLoads.delete(id); n++;
   }
   packLoads.delete(packId); return n;
 }
