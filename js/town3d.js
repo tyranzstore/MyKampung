@@ -79,6 +79,15 @@ function signTex(text, bg, fg = '#fff', sub = '') {
 }
 
 // ------------------------------------------------------------ builder: simple parts, baked later
+// Free the GPU resources a subtree owns. Geometries/materials in `keep` are shared and survive.
+// Textures are never disposed here: they come from the shared texture set (X) and are reused on rebuild.
+export function disposeOwned(root, keep = new Set()) {
+  root.traverse((o) => {
+    if (o.isInstancedMesh) o.dispose(); // instance matrix/colour buffers only, not geometry or material
+    if (o.geometry && !keep.has(o.geometry)) o.geometry.dispose();
+    for (const m of [].concat(o.material || [])) if (!keep.has(m)) m.dispose();
+  });
+}
 function kit(root) {
   const mats = new Map();
   const K = {
@@ -386,8 +395,9 @@ export async function createTown3D(canvas, hooks) {
   // yards (tall grass instanced; rebuilt when cut)
   const yardMeshes = {};
   const bladeGeo = new T.ConeGeometry(.07, .9, 3); bladeGeo.translate(0, .45, 0);
+  const yardShared = new Set([bladeGeo]);
   function buildYard(id, cut) {
-    if (yardMeshes[id]) { ground.remove(yardMeshes[id]); yardMeshes[id].geometry !== bladeGeo && yardMeshes[id].geometry.dispose(); }
+    if (yardMeshes[id]) { ground.remove(yardMeshes[id]); disposeOwned(yardMeshes[id], yardShared); } // old yard is a Group: free each child, keep the shared blade
     const y = YARDS[id], [a, b] = W(y.i0, y.j0), [c, d] = W(y.i1, y.j1), g = new T.Group();
     const base = gk.add(new T.PlaneGeometry(c - a, d - b), new T.MeshStandardMaterial({ map: X.grass, color: cut ? 0x9ad66f : 0x5f9a3c, roughness: .95 }), (a + c) / 2, .015, (b + d) / 2, g, false); base.rotation.x = -Math.PI / 2;
     if (!cut) {
