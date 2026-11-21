@@ -30,7 +30,13 @@ const NPC = {
   // three r170 GLTFLoader as set up in js/models.js has no Draco/Meshopt/KTX2 decoders
   bannedExtensions: ['KHR_draco_mesh_compression', 'EXT_meshopt_compression', 'KHR_texture_basisu'],
 };
-export const SPECS = { tokabah: { ...NPC, label: 'Tok Abah (semi-realistic NPC)' }, npc: NPC };
+// staticNpc: a detailed but unrigged NPC (e.g. Pok Ajis, made in Tripo). Same size/texture/memory limits; no rig or
+// clips required (the game never invents animations for it), and any height is accepted because the game scales it.
+export const SPECS = {
+  tokabah: { ...NPC, label: 'Tok Abah (semi-realistic NPC)' },
+  npc: NPC,
+  staticNpc: { ...NPC, label: 'Static village NPC (no rig, mobile)', requireRig: false, requiredClips: {}, heightAnyScale: true },
+};
 
 // ------------------------------------------------------------ GLB container
 export function parseGlb(buf) {
@@ -150,7 +156,9 @@ export function checkGlb(buf, spec = SPECS.tokabah) {
     // upright: taller than deep, and not much narrower than tall (a T-pose arm span is about the body height)
     const up = size[1] > size[2] * 1.5 && size[1] >= size[0] * 0.8;
     add(up ? 'PASS' : 'FAIL', 'y-up', up ? 'standing upright (Y-up)' : `model is lying down or not Y-up (size x/y/z = ${stats.size.join(' / ')} m)`);
-    add(size[1] < spec.heightMin || size[1] > spec.heightMax ? 'FAIL' : 'PASS', 'height', `${size[1].toFixed(2)} m (need ${spec.heightMin}–${spec.heightMax} m; export in metres)`);
+    const metres = size[1] >= spec.heightMin && size[1] <= spec.heightMax;
+    if (spec.heightAnyScale) add(size[1] > 0 && metres ? 'PASS' : size[1] > 0 ? 'WARN' : 'FAIL', 'height', `${size[1].toFixed(2)} units${metres ? ' (metres)' : ' — not in metres; the game must set his height in code'}`);
+    else add(metres ? 'PASS' : 'FAIL', 'height', `${size[1].toFixed(2)} m (need ${spec.heightMin}–${spec.heightMax} m; export in metres)`);
     add(Math.abs(lo[1]) > spec.feetTolerance ? 'WARN' : 'PASS', 'origin-feet', `lowest point y = ${lo[1].toFixed(3)} m (origin should be at the feet)`);
     const cx = (lo[0] + hi[0]) / 2, cz = (lo[2] + hi[2]) / 2;
     add(Math.hypot(cx, cz) > spec.centreTolerance ? 'WARN' : 'PASS', 'origin-centre', `centre x/z = ${cx.toFixed(2)} / ${cz.toFixed(2)} m (should be about 0 / 0)`);
@@ -158,7 +166,8 @@ export function checkGlb(buf, spec = SPECS.tokabah) {
 
   // rig
   const jointSet = new Set(skins.flatMap(s => s.joints)); stats.joints = jointSet.size; stats.skins = skins.length;
-  if (!skins.length || !skinnedPrims) add('FAIL', 'rig', 'no skinned mesh — the character must be rigged (skin with JOINTS_0 / WEIGHTS_0)');
+  if ((!skins.length || !skinnedPrims) && spec.requireRig === false) add('PASS', 'rig', 'static model (no rig required; no animations will be played)');
+  else if (!skins.length || !skinnedPrims) add('FAIL', 'rig', 'no skinned mesh — the character must be rigged (skin with JOINTS_0 / WEIGHTS_0)');
   else {
     const j = jointSet.size;
     add(j > spec.jointsMax || j < spec.jointsMin ? 'FAIL' : j > spec.jointsTarget ? 'WARN' : 'PASS', 'rig', `${skins.length} skin, ${j} joints (need ${spec.jointsMin}–${spec.jointsMax}, target ≤ ${spec.jointsTarget})`);
@@ -214,7 +223,7 @@ export function checkGlb(buf, spec = SPECS.tokabah) {
 // ------------------------------------------------------------ CLI
 if (import.meta.url === pathToFileURL(process.argv[1] || '').href) {
   const args = process.argv.slice(2), file = args.find(a => !a.startsWith('--')), pi = args.indexOf('--profile'), profile = pi >= 0 ? args[pi + 1] : 'tokabah';
-  if (!file) { console.log('usage: node tools/check_glb.mjs <file.glb> [--profile tokabah|npc] [--json]'); process.exit(2); }
+  if (!file) { console.log('usage: node tools/check_glb.mjs <file.glb> [--profile tokabah|npc|staticNpc] [--json]'); process.exit(2); }
   if (!existsSync(file)) { console.log(`not found: ${file}`); process.exit(2); }
   if (!SPECS[profile]) { console.log(`unknown profile "${profile}" (have: ${Object.keys(SPECS).join(', ')})`); process.exit(2); }
   const res = checkGlb(readFileSync(file), SPECS[profile]);

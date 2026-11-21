@@ -46,7 +46,7 @@ const CHAPTERS = [
   ], intro: ['Jalan baru ke Pantai Miami dah dibuka. Di hujung pantai, Jambatan Angkat berdiri megah di muara sungai.', 'A new road to Pantai Miami has opened. At the far end of the beach, the drawbridge stands proudly over the river mouth.'] },
   { n: 5, bm: 'Pesta Kampung', en: 'Village Festival', missions: [
     { bm: 'Sembang dengan Tok Abah', en: 'Talk to Tok Abah', target: 'abah' },
-    { bm: 'Jumpa Pak Ajis di Balai Raya', en: 'Meet Pak Ajis at the community hall', target: 'balai' },
+    { bm: 'Jumpa Pok Ajis di Balai Raya', en: 'Meet Pok Ajis at the community hall', target: 'balai' },
     { bm: 'Beli barang pesta di Damai City Mall', en: 'Buy festival supplies at Damai City Mall', target: 'mall' },
     { bm: 'Bantu Nek Ma masak untuk kenduri', en: 'Help Nek Ma cook for the feast', target: 'kiah' },
     { bm: 'Karaoke di Balai Raya', en: 'Sing karaoke at the community hall', target: 'balai' },
@@ -55,7 +55,7 @@ const CHAPTERS = [
 ];
 const NEXT = { n: 6, bm: 'Balik Raya', en: 'Home for Raya', teaser: 'Lemang, pelita dan rumah terbuka. · Lemang, oil lamps and open house.' };
 const INVITE = ['amin', 'ani', 'abu'];
-const AJIS = NPCS.abu; // Pak Ajis leads the festival committee
+const AJIS = NPCS.abu; // Pok Ajis leads the festival committee
 function fireworks() { if (town.fireworks) town.fireworks(14); toast('🎆 Bunga api di langit Kampung Seri Damai!', 'Fireworks over Kampung Seri Damai!'); sfx.cheer && sfx.cheer(); }
 // save migration: older saves only knew chapter 1
 if (!S.chapter) S.chapter = 1;
@@ -102,7 +102,7 @@ const LINES = {
     ['Eh, Nek Ma cakap Pak Hassan nak buat kenduri kesyukuran. Pergilah jemput orang kampung!', 'Oh, Nek Ma says Pak Hassan is holding a thanksgiving feast. Go invite the villagers!']],
   inv_amin: [['Kenduri? Ada ayam masak merah tak? Amin datang!', "A feast? Will there be chicken masak merah? I'm coming!"]],
   inv_ani: [['Terima kasih jemput Cikgu. Nanti Cikgu bawa kuih seri muka, ya.', "Thank you for inviting me. I'll bring some kuih seri muka."]],
-  inv_abu: [['InsyaAllah, Pak Ajis datang lepas Asar. Bawa gitar sekali!', "God willing, I'll come after Asar prayers. I'll bring my guitar!"]],
+  inv_abu: [['InsyaAllah, Pok Ajis datang lepas Asar. Bawa gitar sekali!', "God willing, I'll come after Asar prayers. I'll bring my guitar!"]],
   hassan5: [['Ramai betul yang datang! Dah lama sawah ni tak meriah macam ni.', "So many people came! It's been years since this field was this lively."],
     ['Terima kasih, nak. Kau dah hidupkan semula semangat bertani kampung ni.', "Thank you, child. You've brought farming back to life in this village."],
     ['Mulai esok, datanglah tuai padi bila-bila. Pak Hassan bayar upah!', "From tomorrow, come and harvest any time. I'll pay you for it!"]],
@@ -123,15 +123,15 @@ const LINES = {
     ['Malam ni Nek buat ikan bakar. Orang kampung mesti datang ramai!', "Tonight I'll make ikan bakar. The whole village will come!"]],
   kiah3b: [['Eh, Pak Mat ada cerita nak beritahu kamu. Pergilah ke jeti.', 'Oh, Pak Mat has something to tell you. Go to the jetty.']],
   abah_b5: [['Cucu, kampung kita dah lain sekarang. Sawah menguning, jeti riuh, pantai bersih — semua sebab kamu.', 'Grandchild, our village is different now. The padi is golden, the jetty is busy, the beach is clean — all because of you.'],
-    ['Orang kampung nak buat Pesta Kampung di Balai Raya Sabtu ni. Pak Ajis jadi ketua jawatankuasa.', 'The villagers want to hold a Village Festival at the community hall this Saturday. Pak Ajis is leading the committee.'],
+    ['Orang kampung nak buat Pesta Kampung di Balai Raya Sabtu ni. Pok Ajis jadi ketua jawatankuasa.', 'The villagers want to hold a Village Festival at the community hall this Saturday. Pok Ajis is leading the committee.'],
     ['Pergilah ke Balai Raya, tolong dia. Ketik Balai Raya di peta.', 'Go to the community hall and help him. Tap the Balai Raya on the map.']],
-  ajis1: [['Hah, sampai pun! Pak Ajis dah lama tunggu. Balai ni dah dihias sikit — tapi barang pesta tak cukup lagi.', "Ah, you're here! I've been waiting. The hall is half decorated — but we still need supplies."],
+  ajis1: [['Hah, sampai pun! Pok Ajis dah lama tunggu. Balai ni dah dihias sikit — tapi barang pesta tak cukup lagi.', "Ah, you're here! I've been waiting. The hall is half decorated — but we still need supplies."],
     ['Pergi ke Damai City Mall, beli barang dalam senarai. Lepas tu tolong Nek Ma masak untuk kenduri.', 'Go to Damai City Mall and buy what is on the list. Then help Nek Ma cook for the feast.'],
-    ['Malam nanti ada karaoke — Pak Ajis main gitar, kamu menyanyi!', "Tonight there's karaoke — I'll play guitar and you'll sing!"]],
+    ['Malam nanti ada karaoke — Pok Ajis main gitar, kamu menyanyi!', "Tonight there's karaoke — I'll play guitar and you'll sing!"]],
   mall5: [['Lengkap! Pelita, kain rentang, pinggan, minuman — semua ada.', 'All done! Lamps, banners, plates, drinks — everything.'], ['Sekarang pergi ke warung Nek Ma. Dia perlukan tangan tambahan di dapur.', "Now go to Nek Ma's stall. She needs an extra pair of hands in the kitchen."]],
   kiah5: [['Kenduri besar malam ni! Nasi minyak, ayam masak merah, satay, apam balik…', "A big feast tonight! Nasi minyak, ayam masak merah, satay, apam balik…"], ['Tolong Nek layan pelanggan di gerai makanan pesta. Cepat dan tepat, ya!', 'Help me serve customers at the festival food stalls. Quick and correct!']],
   kiah5b: [['Sedap! Semua orang kenyang. Pergilah ke Balai Raya — karaoke dah nak mula!', "Delicious! Everyone's full. Go to the community hall — karaoke is about to start!"]],
-  ajis2: [['Pentas dah siap, lampu dah menyala. Lagu kita malam ni: "Kampung Kita" — lagu yang Pak Ajis tulis sendiri.', 'The stage is ready and the lights are on. Our song tonight: "Kampung Kita" — a song I wrote myself.'],
+  ajis2: [['Pentas dah siap, lampu dah menyala. Lagu kita malam ni: "Kampung Kita" — lagu yang Pok Ajis tulis sendiri.', 'The stage is ready and the lights are on. Our song tonight: "Kampung Kita" — a song I wrote myself.'],
     ['Ketik lajur bila not sampai ke garisan. Rendah, tengah, tinggi. Jangan malu!', "Tap the lane when a note reaches the line. Low, middle, high. Don't be shy!"]],
   ajis3: [['Wah, sorak orang kampung sampai ke laut! Kamu memang bintang kampung.', 'Wow, the cheers reached the sea! You really are the village star.'], ['Tok Abah tunggu kamu di rumah — dia ada sesuatu nak cakap.', 'Tok Abah is waiting for you at home — he has something to say.']],
   abah5: [['Cucu… Tok dengar kamu menyanyi tadi. Sampai Tok menitis air mata.', 'Grandchild… I heard you singing earlier. It brought tears to my eyes.'],
@@ -164,7 +164,7 @@ const IDLE = {
   ani: [['Jangan lupa membaca, ya!', "Don't forget to read!"], ['Murid-murid Cikgu dulu semua dah besar.', 'All my old pupils are grown up now.']],
   kaklong: [['Keropok lekor! Panas-panas, rangup-rangup!', 'Keropok lekor! Hot and crispy!'], ['Petang-petang ramai orang main wau kat pantai ni.', 'In the evenings lots of people fly wau kites on this beach.'], ['Jangan buang sampah merata, ya!', "Don't litter, okay!"]],
   mat: [['Laut ni guru yang paling sabar.', 'The sea is the most patient teacher.'], ['Subuh esok angin elok. Ikan mesti banyak.', 'The wind will be good at dawn. Plenty of fish.']],
-  abu: [['Petang-petang Pak Ajis main gitar di beranda.', 'In the evenings I play guitar on the verandah.'], ['Rumah Pak Ajis ni dah tiga generasi.', 'This house has been in my family for three generations.']],
+  abu: [['Petang-petang Pok Ajis main gitar di beranda.', 'In the evenings I play guitar on the verandah.'], ['Rumah Pok Ajis ni dah tiga generasi.', 'This house has been in my family for three generations.']],
 };
 const GREETS = [['Assalamualaikum!', 'Peace be upon you!'], ['Panas betul hari ni.', "It's really hot today."], ['Dah makan?', 'Have you eaten?'], ['Eh, anak siapa ni? Oh, cucu Tok Abah!', "Whose kid is this? Oh, Tok Abah's grandchild!"], ['Petang nanti ada gotong-royong.', "There's a community clean-up this evening."]];
 const RANKS = [[0, 'Budak Baru'], [8, 'Anak Kampung'], [20, 'Geng Kampung'], [40, 'Wira Kampung'], [70, 'Ketua Belia']];
@@ -454,7 +454,7 @@ async function onTap(hit) {
     if (at(2, 4) && !S.invited.includes(y)) return talk(y);
     if (!done(1, 1)) return toast('Jiran belum perlukan bantuan', "The neighbours don't need help yet");
     if (S.daily.yards.includes(y)) return toast('Laman ni dah kemas hari ni', 'This yard is already done today');
-    if (await jobPrompt(y === 'ani' ? 'Tebas laman Cikgu Aqilah' : 'Tebas laman Pak Ajis', 40)) return dailyJob('grass', y);
+    if (await jobPrompt(y === 'ani' ? 'Tebas laman Cikgu Aqilah' : 'Tebas laman Pok Ajis', 40)) return dailyJob('grass', y);
     return;
   }
   if (id === 'carwash') {

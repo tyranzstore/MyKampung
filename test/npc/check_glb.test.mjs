@@ -152,6 +152,17 @@ test('compression the game cannot decode (Draco, Meshopt, KTX2) fails', () => {
   for (const e of ['KHR_draco_mesh_compression', 'EXT_meshopt_compression', 'KHR_texture_basisu']) assert.deepEqual(level(run({ ext: [e] }), 'extensions'), ['FAIL'], e);
   assert.deepEqual(level(run({ ext: ['KHR_texture_transform', 'EXT_texture_webp'] }), 'extensions'), ['PASS']);
 });
+test('staticNpc profile: an unrigged model with no clips passes; size and texture limits still apply', () => {
+  const st = (o) => checkGlb(makeGlb(o), SPECS.staticNpc);
+  const r = st({ noSkin: true, clips: {} });
+  assert.equal(r.ok, true, JSON.stringify(fails(r))); assert.deepEqual(level(r, 'rig'), ['PASS']);
+  assert.deepEqual(level(st({ noSkin: true, clips: {}, height: 1 }), 'height'), ['WARN'], 'normalised height is a warning, the game scales it');
+  assert.deepEqual(level(st({ noSkin: true, clips: {}, height: 1.68 }), 'height'), ['PASS']);
+  assert.ok(fails(st({ noSkin: true, clips: {}, images: [png(4096, 4096)] })).includes('texture-size'));
+  assert.ok(fails(st({ noSkin: true, clips: {}, tris: 16000 })).includes('triangles'));
+  assert.ok(fails(st({ noSkin: true, clips: {}, padBytes: 2.6 * 1048576 })).includes('file-size'));
+  assert.equal(run({ noSkin: true, clips: {} }).ok, false, 'the Tok Abah profile still requires a rig and clips');
+});
 test('many morph targets warn (prefer a jaw bone)', () => { assert.deepEqual(level(run({ morphs: 12 }), 'morph-targets'), ['WARN']); });
 
 let fail = 0;

@@ -2,7 +2,7 @@
 // Same interface as the 2D town (createTown) so main.js can use either.
 // Static scenery is built from simple parts, then "baked" (merged) into a few draw calls so it runs well on phones.
 import { clamp, lerp, mulberry32 } from './core.js';
-import { loadModels, putModel, putAnimated } from './models.js';
+import { loadModels, putModel, putAnimated, loadGLB } from './models.js';
 import { makeOcean, shoreWaves } from './ocean.js';
 
 let T, mergeGeometries, GLTFLoader;
@@ -32,7 +32,7 @@ export const NPCS3D = {
   hassan: { i: 8.6, j: 19.2, look: { shirt: 0x8d6e63, pants: 0x4e342e, skin: 0x9c6b44, cap: 0xd9b36c } },
   lim: { i: 17.3, j: 8.3, look: { shirt: 0xecf0f1, pants: 0x34495e, skin: 0xe0b08a, hair: 0x333333 } },
   ani: { i: 13.4, j: 22.5, look: { shirt: 0xa3cbe8, pants: 0x2c3e50, skin: 0xc78b5a, tudung: 0x1f6f9c, sarong: true } },
-  abu: { i: 25.6, j: 26.2, look: { shirt: 0x95a5a6, pants: 0x2c3e50, skin: 0xa8703e, songkok: true } },
+  abu: { i: 21.3, j: 26.4, look: { shirt: 0x95a5a6, pants: 0x2c3e50, skin: 0xa8703e, songkok: true } },
   kaklong: { i: 36.75, j: 8.5, look: { shirt: 0xf6a5c0, pants: 0x6c3483, skin: 0xc68a5a, tudung: 0xd35400, sarong: true } },
   mat: { i: 11.7, j: 4.4, look: { shirt: 0xf39c12, pants: 0x34495e, skin: 0x8d5a34, cap: 0xecf0f1, beard: true } },
 };
@@ -417,7 +417,7 @@ export async function createTown3D(canvas, hooks) {
     const houses = [
       ['house_abah', 'Rumah Tok Abah', 8, 8, 3, 3, { wall: flags.abahRepaired ? (parseInt((flags.houseColor || '#c48a58').slice(1), 16)) : 0xb98a62, roof: flags.abahRepaired ? 'zinc' : 'rust', broken: !flags.abahRepaired }],
       ['house_ani', 'Rumah Cikgu Aqilah', 10, 20, 3, 3, { wall: 0xa9d8b8, roof: 'zinc', roofTint: 0xc0d9e8 }],
-      ['house_abu', 'Rumah Pak Ajis', 22, 24, 3, 3, { wall: 0x8fc1d4, roof: 'tiles' }],
+      ['house_abu', 'Rumah Pok Ajis', 22, 24, 3, 3, { wall: 0x8fc1d4, roof: 'tiles' }],
       [null, null, 3, 9, 3, 3, { wall: 0xf3d08a, roof: 'attap' }], [null, null, 3, 13, 2.5, 2.5, { wall: 0xe8b4b8, roof: 'zinc' }], [null, null, 24, 25.5, 0, 0, null],
     ];
     for (const [id, label, i, j, w, d, o] of houses) {
@@ -622,6 +622,18 @@ export async function createTown3D(canvas, hooks) {
   const kp = kit(scene);
   const npcs = {};
   for (const [id, n] of Object.entries(NPCS3D)) { const p = makePerson(kp, n.look); const [x, z] = W(n.i, n.j); p.g.position.set(x, 0, z); p.g.rotation.y = Math.PI * .25; p.g.userData.npc = id; scene.add(p.g); npcs[id] = p; }
+  // Detailed NPC models (static GLB, not rigged) replace an NPC's simple figure once loaded, in the background.
+  // The simple figure is only hidden, never removed: if loading fails it simply stays. Same group, so position,
+  // visibility, tapping, markers and the hero's walk target are unchanged. Models face +Z like the simple figures.
+  // abu stands at i 21.3 / j 26.4 (NPCS3D): his old spot (25.6 / 26.2) was hidden behind a tree from the village camera.
+  const NPC_MODELS = { abu: { url: 'assets/characters/pok_ajis/PokAjis.glb', h: 1.6 } }; // Pok Ajis
+  const later = (f) => (window.requestIdleCallback ? requestIdleCallback(f, { timeout: 2500 }) : setTimeout(f, 1200));
+  for (const [id, spec] of Object.entries(NPC_MODELS)) later(() => loadGLB(spec.url).then((src) => {
+    const p = npcs[id]; if (!src || !p || p.model) return;
+    const m = src.clone(true); m.scale.setScalar(spec.h / Math.max(.01, src.userData.size.y));
+    for (const c of p.body.children) c.visible = false;
+    p.body.add(m); p.model = m; // inside body: keeps the gentle idle bob; no skeletal animation is invented
+  }));
   const rnd = mulberry32(5);
   const walkers = VILLAGERS.map((look, k) => { const p = makePerson(kp, look); scene.add(p.g); return { p, axis: k % 2 ? 'i' : 'j', lane: k % 2 ? (k % 4 === 1 ? 15.75 : 18.35) : (k % 4 === 0 ? 13.7 : 16.3), pos: 6 + rnd() * 20, dir: rnd() > .5 ? 1 : -1, speed: .35 + rnd() * .2, pause: 0, id: 'villager' + k }; });
   const traffic = (key, fallbackCol, police) => { const tmp = new T.Group(); const m = putModel(M, key, tmp, 0, 0, { len: 2.5, face: 'x' }); if (m) { tmp.remove(m); return m; } return carModel(kp, fallbackCol, police); };
@@ -827,6 +839,7 @@ export async function createTown3D(canvas, hooks) {
   { const w = W(11, 12); target.set(w[0], 0, w[1]); }
   return {
     rebuild, frame, focus, anchor, timeOfDay, is3D: true, openBridge, fireworks, bridgeState: () => bridge.st,
+    npcModel: (id) => !!(npcs[id] && npcs[id].model), // true once a detailed model replaced the simple figure
     zoomBy(f) { zoom *= f; clampT(); goal = null; },
     cam: view,
     hide(v) { canvas.style.visibility = v ? 'hidden' : 'visible'; layer.style.visibility = v ? 'hidden' : 'visible'; },

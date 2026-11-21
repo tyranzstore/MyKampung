@@ -66,10 +66,34 @@ test('the validator rejects the current static hero as a Tok Abah model (no rig,
   for (const id of ['rig', 'clip:idle', 'clip:walk', 'clip:talk', 'clip:sit']) assert.ok(f.includes(id), id);
 });
 
+test('every detailed NPC model the game loads exists and passes the validator', () => {
+  const town = src('js/town3d.js'), block = (town.match(/const NPC_MODELS = \{([^\n]*)\};/) || [])[1];
+  assert.ok(block, 'NPC_MODELS in town3d.js');
+  const entries = [...block.matchAll(/(\w+):\s*\{\s*url:\s*'([^']+)'/g)].map(m => ({ id: m[1], url: m[2] }));
+  assert.ok(entries.length >= 1);
+  for (const { id, url } of entries) {
+    assert.match(town, new RegExp(`NPCS3D = \\{[\\s\\S]*?${id}:\\s*\\{`), `${id} is an existing NPC (no duplicate character)`);
+    assert.ok(existsSync(url), `${url} exists`);
+    const r = checkGlb(readFileSync(url), SPECS.staticNpc);
+    assert.equal(r.ok, true, `${url}: ${r.results.filter(x => x.level === 'FAIL').map(x => x.id).join(', ')}`);
+    notes.push(`${id} → ${url} passes (${r.stats.fileMB} MB, ${r.stats.triangles} tris, ${r.stats.gpuTextureMB} MB GPU textures)`);
+  }
+});
+
+test('Pok Ajis: same character (id abu), renamed for display only, no duplicate, original kept for future upgrades', () => {
+  const town2d = src('js/town.js');
+  assert.match(town2d, /abu:\s*\{\s*name:\s*'Pok Ajis'/);
+  assert.equal((town2d.match(/name:\s*'P[ao]k Ajis'/g) || []).length, 1, 'exactly one Ajis NPC');
+  assert.equal(jsFiles.some(f => src(f).includes('Pak Ajis')), false, 'no leftover "Pak Ajis" text');
+  assert.ok((src('js/main.js').match(/NPCS\.abu|'abu'|house_abu|inv_abu/g) || []).length >= 3, 'story still uses the abu id');
+  assert.ok(existsSync('assets/characters/pok_ajis/PokAjis_source.glb'), 'original GLB kept');
+  assert.equal(jsFiles.some(f => src(f).includes('PokAjis_source')), false, 'the 4096px original is never loaded by the game');
+});
+
 test('canonical NPC names: matches are present; differences are reported, not renamed', () => {
   const canonical = ['Tok Abah', 'Nek Ma', 'Pok Wan', 'Pok Ajis', 'Mok Ngoh', 'Mok Yah', 'Cikgu Eby', 'Yaya', 'Seola', 'Taeyang'];
   const names = [...src('js/town.js').matchAll(/(\w+):\s*\{\s*name:\s*'([^']+)'/g)].map(m => ({ id: m[1], name: m[2] }));
-  for (const n of ['Tok Abah', 'Nek Ma', 'Pok Wan']) assert.ok(names.some(x => x.name === n), n);
+  for (const n of ['Tok Abah', 'Nek Ma', 'Pok Wan', 'Pok Ajis']) assert.ok(names.some(x => x.name === n), n);
   const missing = canonical.filter(c => !names.some(x => x.name === c)), extra = names.filter(x => !canonical.includes(x.name)).map(x => `${x.name} (${x.id})`);
   notes.push(`canonical names not in the game yet: ${missing.join(', ')}`);
   notes.push(`game names not in the canonical list: ${extra.join(', ')}`);

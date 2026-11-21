@@ -39,7 +39,7 @@ export const NPCS = {
   hassan: { name: 'Pak Hassan', initial: 'PH', color: '#6b8e23', i: 8.6, j: 19.2, look: { shirt: '#8d6e63', pants: '#4e342e', skin: '#9c6b44', cap: '#d9b36c' } },
   lim: { name: 'Uncle Lim', initial: 'UL', color: '#c0392b', i: 17.3, j: 8.3, look: { shirt: '#ecf0f1', pants: '#34495e', skin: '#e0b08a', hair: '#333' } },
   ani: { name: 'Cikgu Aqilah', initial: 'CQ', color: '#8e44ad', i: 13.4, j: 22.5, look: { shirt: '#a3cbe8', pants: '#2c3e50', skin: '#c78b5a', tudung: '#1f6f9c' } },
-  abu: { name: 'Pak Ajis', initial: 'PA', color: '#2c3e50', i: 25.6, j: 26.2, look: { shirt: '#95a5a6', pants: '#2c3e50', skin: '#a8703e', songkok: true } },
+  abu: { name: 'Pok Ajis', initial: 'PA', color: '#2c3e50', i: 25.6, j: 26.2, look: { shirt: '#95a5a6', pants: '#2c3e50', skin: '#a8703e', songkok: true } },
   kaklong: { name: 'Kak Long', initial: 'KL', color: '#d35400', i: 24.6, j: 4.3, look: { shirt: '#f6a5c0', pants: '#6c3483', skin: '#c68a5a', tudung: '#d35400' } },
   mat: { name: 'Pak Mat', initial: 'PM', color: '#d35400', i: 11.7, j: 4.4, look: { shirt: '#f39c12', pants: '#34495e', skin: '#8d5a34', cap: '#ecf0f1', beard: true } },
 };
@@ -257,7 +257,7 @@ export function createTown(canvas, hooks) {
   const OBJ = [
     { id: 'house_abah', kind: 'house', i: 8, j: 8, w: 3, d: 3, stilt: 16, wall: '#c48a58', roof: '#8a4b33', door: true, label: 'Rumah Tok Abah' },
     { id: 'house_ani', kind: 'house', i: 10, j: 20, w: 3, d: 3, stilt: 14, wall: '#a9d8b8', roof: '#b24a3c', door: true, label: 'Rumah Cikgu Aqilah' },
-    { id: 'house_abu', kind: 'house', i: 22, j: 24, w: 3, d: 3, stilt: 14, wall: '#8fc1d4', roof: '#4f6f8f', door: true, label: 'Rumah Pak Ajis' },
+    { id: 'house_abu', kind: 'house', i: 22, j: 24, w: 3, d: 3, stilt: 14, wall: '#8fc1d4', roof: '#4f6f8f', door: true, label: 'Rumah Pok Ajis' },
     { id: 'house_x1', kind: 'house', i: 3, j: 9, w: 3, d: 3, stilt: 14, wall: '#f3d08a', roof: '#9d433c', door: true },
     { id: 'house_x2', kind: 'house', i: 25, j: 14, w: 3, d: 2, stilt: 12, wall: '#f4e6cb', roof: '#8a4b33', door: true },
     { id: 'house_x3', kind: 'house', i: 3, j: 13, w: 2, d: 2, stilt: 12, wall: '#e8b4b8', roof: '#4f6f8f', door: true },

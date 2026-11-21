@@ -61,6 +61,26 @@ async function loadAll(onProgress) {
   }));
   return M;
 }
+// Load one GLB that is NOT in the model packs (e.g. a detailed NPC), on demand and only once per URL.
+// Resolves to a wrapped model ready for putModel-style cloning (feet on y=0, centred, userData.size),
+// or null if anything fails — callers keep their current representation in that case.
+const glbCache = new Map();
+export function loadGLB(url) {
+  if (!glbCache.has(url)) glbCache.set(url, (async () => {
+    try {
+      if (!T) T = await import('three');
+      const { GLTFLoader: L } = await import('three/addons/loaders/GLTFLoader.js');
+      const g = await new L().loadAsync(url);
+      const inner = g.scene, box = new T.Box3().setFromObject(inner), c = box.getCenter(new T.Vector3());
+      inner.position.sub(new T.Vector3(c.x, box.min.y, c.z));
+      const wrap = new T.Group(); wrap.add(inner); wrap.userData.size = box.getSize(new T.Vector3()); wrap.userData.anims = g.animations || [];
+      inner.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+      return wrap;
+    } catch (e) { console.warn('model failed', url, e); return null; }
+  })());
+  return glbCache.get(url);
+}
+
 // clone a model: size by height (h), by longest side (len) or by factor (scale)
 export function putModel(M, key, parent, x, z, { h, len, scale, ry = 0, y = 0, face, tint } = {}) {
   const src = M[key]; if (!src) return null;
