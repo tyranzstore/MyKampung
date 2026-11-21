@@ -6,16 +6,60 @@ export function mulberry32(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; l
 export const today = () => { const d = new Date(); return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`; };
 
 // ------------------------------------------------------------ save
-const KEY = 'tkh_town_v1';
+// The save lives in localStorage under KEY (unchanged since v0.1, so every old save still loads).
+// Safety net: a backup copy under BAK, a version number (saveVersion), export/import from the Menu,
+// and a request for persistent storage so the browser is less likely to clear it.
+const KEY = 'tkh_town_v1', BAK = KEY + '_bak';
+export const SAVE_VERSION = 2; // 1 = saves from before versions existed; 2 = adds saveVersion + backup
 export const DEFAULTS = () => ({
   started: false, coins: 0, stars: 0, spirit: 10, chapter: 1, mission: 0, chapterDone: false, invited: [], rice: 0,
   houseColor: null, best: {}, daily: { date: '', count: 0, yards: [] },
-  muted: false, timeMode: 'real', gfx: '3d', visited: {},
+  muted: false, timeMode: 'real', gfx: '3d', visited: {}, saveVersion: SAVE_VERSION,
 });
-function load() { try { return JSON.parse(localStorage.getItem(KEY)) || null; } catch { return null; } }
-export const S = Object.assign(DEFAULTS(), load() || {});
-export function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch {} }
-export function wipe() { try { localStorage.removeItem(KEY); } catch {} }
+const isObj = (o) => !!o && typeof o === 'object' && !Array.isArray(o);
+// null = nothing stored, undefined = stored but damaged (or storage unreadable)
+function read(k) { try { const s = localStorage.getItem(k); if (s == null) return null; const o = JSON.parse(s); return isObj(o) ? o : undefined; } catch { return undefined; } }
+let status = 'new'; // 'new' | 'ok' | 'restored' — how this session's save was loaded
+function load() {
+  const main = read(KEY); if (main) { status = 'ok'; return main; }
+  if (main === undefined) { const b = read(BAK); if (b) { status = 'restored'; try { localStorage.setItem(KEY, JSON.stringify(b)); } catch {} return b; } }
+  return null;
+}
+// upgrade an older save in place: only ever ADD fields, never remove or rename player data
+function migrate(o) { if (!(o.saveVersion >= SAVE_VERSION)) o.saveVersion = SAVE_VERSION; return o; }
+export const S = migrate(Object.assign(DEFAULTS(), load() || {}));
+export const saveStatus = () => status;
+let lastBak = 0, warned = false;
+export function save() {
+  let ok = false;
+  try {
+    const s = JSON.stringify(S); localStorage.setItem(KEY, s); ok = true;
+    if (Date.now() - lastBak > 60000) { localStorage.setItem(BAK, s); lastBak = Date.now(); } // backup at most once a minute
+  } catch {}
+  if (!ok && !warned && typeof document !== 'undefined') { warned = true; setTimeout(() => toast('⚠️ Kemajuan tidak dapat disimpan', 'Progress could not be saved. Menu → Simpanan to export a backup.'), 0); }
+  return ok;
+}
+export function wipe() { try { localStorage.removeItem(KEY); localStorage.removeItem(BAK); } catch {} }
+// ask the browser not to clear our storage (best effort; some browsers decide on their own)
+export function keepSaveSafe() { try { navigator.storage && navigator.storage.persist && navigator.storage.persist().catch(() => {}); } catch {} }
+// export file: { game, kind, version, exported, data }
+export function exportSave() { return JSON.stringify({ game: 'MyKampung', kind: 'save', version: SAVE_VERSION, exported: new Date().toISOString(), data: S }); }
+// accepts an export file or a raw save; checks it really is a MyKampung save before anything is replaced
+export function parseSave(text) {
+  let o; try { o = JSON.parse(text); } catch { return { ok: false, reason: 'json' }; }
+  if (isObj(o) && 'game' in o) { if (o.game !== 'MyKampung' || !isObj(o.data)) return { ok: false, reason: 'game' }; o = o.data; }
+  if (!isObj(o)) return { ok: false, reason: 'shape' };
+  const num = (v, min) => typeof v === 'number' && Number.isFinite(v) && v >= min;
+  if (!num(o.coins, 0) || !num(o.chapter, 1) || (o.stars !== undefined && !num(o.stars, 0))) return { ok: false, reason: 'shape' };
+  return { ok: true, data: o };
+}
+// replace the save with an imported one; the current save is kept aside under KEY_preimport
+export function importSave(data) {
+  try {
+    const cur = localStorage.getItem(KEY); if (cur) localStorage.setItem(KEY + '_preimport', cur);
+    const s = JSON.stringify(migrate({ ...data })); localStorage.setItem(KEY, s); localStorage.setItem(BAK, s); return true;
+  } catch { return false; }
+}
 export function checkDaily() { if (S.daily.date !== today()) { S.daily = { date: today(), count: 0, yards: [] }; save(); } }
 
 // ------------------------------------------------------------ audio (WebAudio synth, no files)

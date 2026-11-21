@@ -63,6 +63,7 @@ canvas{display:block}
 .btns{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:14px}
 .btns button{border:0;border-radius:12px;padding:11px 16px;font-weight:900;background:#e7e1d3;color:#1d332e}
 .btns button.primary{background:#ffd452;color:#1d2a24;box-shadow:0 3px 0 #c9971a}
+.fileBtn{display:inline-block;border-radius:12px;padding:11px 16px;font-weight:900;background:#e7e1d3;color:#1d332e;cursor:pointer}
 .bigstars{font-size:46px;letter-spacing:6px;color:#ddd5c4;margin:4px 0}
 .bigstars .on{color:#ffc61a;text-shadow:0 3px 0 #c9971a}
 .reward{font-weight:900;font-size:17px!important}
