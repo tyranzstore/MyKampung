@@ -1,4 +1,4 @@
-import { $, S, save, wipe, saveStatus, keepSaveSafe, exportSave, parseSave, importSave, checkDaily, audioInit, setMuted, sfx, toast, dialog, modal, ui, wantMusic, setMusic } from './core.js';
+import { $, S, save, wipe, saveStatus, keepSaveSafe, startAutosave, newerOnDisk, exportSave, parseSave, importSave, checkDaily, audioInit, setMuted, sfx, toast, dialog, modal, ui, wantMusic, setMusic } from './core.js';
 import { createTown, NPCS } from './town.js';
 import { createTown3D } from './town3d.js';
 import { runGame, FISH, RARITY } from './minigames.js';
@@ -218,7 +218,7 @@ function hud() {
 }
 function bump(id) { const e = $(id); e.classList.remove('bump'); void e.offsetWidth; e.classList.add('bump'); }
 function addCoins(n, why = '') { earn(n, why); bump('coins'); hud(); } // all rewards are paid in RM through the wallet
-function addStars(n) { const before = rank(); S.stars += n; bump('stars'); if (rank() !== before) setTimeout(() => toast(`Gelaran baru: ${rank()}!`, 'New title unlocked!'), 900); }
+function addStars(n) { const before = rank(); S.stars += n; save(); bump('stars'); if (rank() !== before) setTimeout(() => toast(`Gelaran baru: ${rank()}!`, 'New title unlocked!'), 900); }
 function showMission() { const c = cur(); if (c) { toast(`Misi: ${c.bm}`, c.en); town.focus(targetOf(c)); } }
 
 // ------------------------------------------------------------ town
@@ -244,7 +244,7 @@ async function resultScreen(title, res, coins, extra = '') {
 }
 
 async function playGame(kind, opts = {}) {
-  if (kind === 'karaoke') { ui.busy = true; audioInit(); wantMusic(null); const res = await runKaraoke(opts); ui.busy = false; wantMusic('kampung'); if (!res) { toast('Tak apa, cuba lagi nanti.', 'No worries, try again later.'); return null; } const prev = S.best.karaoke || 0; if (res.stars > prev) S.best.karaoke = res.stars; return res; }
+  if (kind === 'karaoke') { ui.busy = true; audioInit(); wantMusic(null); const res = await runKaraoke(opts); ui.busy = false; wantMusic('kampung'); if (!res) { toast('Tak apa, cuba lagi nanti.', 'No worries, try again later.'); return null; } const prev = S.best.karaoke || 0; if (res.stars > prev) S.best.karaoke = res.stars; if (!opts.practice) save(); return res; }
   ui.busy = true; audioInit(); wantMusic(['fish', 'seafish', 'boat', 'beach', 'volley', 'photo'].includes(kind) ? 'laut' : 'kampung');
   let res;
   if (S.gfx !== '2d' && has3D()) {
@@ -254,6 +254,7 @@ async function playGame(kind, opts = {}) {
   ui.busy = false; wantMusic('kampung');
   if (!res) { toast('Tak apa, cuba lagi nanti.', 'No worries, try again later.'); return null; }
   const prev = S.best[kind] || 0; if (res.stars > prev) S.best[kind] = res.stars;
+  if (!opts.practice) save(); // mini-game result saved straight away (practice restores S.best afterwards)
   return res;
 }
 
@@ -633,8 +634,8 @@ setInterval(() => { clock(); const before = S.daily.date; checkDaily(); if (befo
 
 // ------------------------------------------------------------ title & loop
 async function start() {
-  audioInit(); $('title').hidden = true; sfx.good(); wantMusic('kampung'); keepSaveSafe();
-  if (saveStatus() === 'restored') setTimeout(() => toast('💾 Simpanan dipulihkan', 'Your save was damaged and has been restored from the backup'), 3000); // after the mission toast
+  if (newerOnDisk()) return location.reload(); // another tab saved later: load that save instead of this page's older copy
+  audioInit(); $('title').hidden = true; sfx.good(); wantMusic('kampung'); keepSaveSafe(); startAutosave();
   if (!S.started) {
     S.started = true; save();
     await modal({ kicker: TOWN.toUpperCase(), title: 'Pulang ke Kampung', html: '<p>Bertahun-tahun kau merantau di bandar. Hari ni kau pulang — tapi kampung dah lain. Kedai tutup, laman semak, orang muda tak ada.</p><p class="muted">You spent years working in the city. Today you are back — but the village has changed. Shops closed, yards overgrown, the young people gone.</p><p><b>Hidupkan semula ' + TOWN + '!</b></p>', buttons: [['Jom mula · Let\'s go', 'ok', true]] });
@@ -646,6 +647,7 @@ async function start() {
     await modal({ kicker: 'BAB BARU · NEW CHAPTER', title: `Bab ${S.chapter} · ${chap().bm}`, html: `<p>${bm}</p><p class="muted">${en}</p>`, buttons: [['Jom! · Let\'s go!', 'ok', true]] });
   }
   showMission();
+  if (saveStatus() === 'restored') setTimeout(() => toast('💾 Simpanan dipulihkan', 'Your save was damaged and has been restored from the backup'), 2800); // after the mission toast
 }
 $('playBtn').textContent = S.started ? 'Sambung · Continue' : 'Main · Play';
 $('playBtn').onclick = start;

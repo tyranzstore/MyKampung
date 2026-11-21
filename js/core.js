@@ -9,37 +9,94 @@ export const today = () => { const d = new Date(); return `${d.getFullYear()}-${
 // The save lives in localStorage under KEY (unchanged since v0.1, so every old save still loads).
 // Safety net: a backup copy under BAK, a version number (saveVersion), export/import from the Menu,
 // and a request for persistent storage so the browser is less likely to clear it.
+// Autosave: every save() goes through one gate that (1) skips the write when nothing changed, (2) refuses to
+// write default or broken state over real progress, (3) never overwrites a newer save from another tab, and
+// (4) stops for good after Restart/Import so the page reload can't write the old progress back.
+// startAutosave() adds a 30 s timer plus saves when the tab is hidden or closed (Page Visibility API).
 const KEY = 'tkh_town_v1', BAK = KEY + '_bak';
-export const SAVE_VERSION = 2; // 1 = saves from before versions existed; 2 = adds saveVersion + backup
+export const SAVE_VERSION = 2; // 1 = saves from before versions existed; 2 = adds saveVersion, savedAt (ms) + backup
+export const AUTOSAVE_MS = 30000;
 export const DEFAULTS = () => ({
   started: false, coins: 0, stars: 0, spirit: 10, chapter: 1, mission: 0, chapterDone: false, invited: [], rice: 0,
   houseColor: null, best: {}, daily: { date: '', count: 0, yards: [] },
   muted: false, timeMode: 'real', gfx: '3d', visited: {}, saveVersion: SAVE_VERSION,
 });
 const isObj = (o) => !!o && typeof o === 'object' && !Array.isArray(o);
+const num = (v, min) => typeof v === 'number' && Number.isFinite(v) && v >= min;
+// a stored save is usable if it is an object and the fields it has are sane (very old saves have no chapter)
+const usable = (o) => isObj(o) && (o.coins === undefined || num(o.coins, 0)) && (o.chapter === undefined || num(o.chapter, 1)) && (o.stars === undefined || num(o.stars, 0));
+// the live state must be complete before it may be written
+const complete = (o) => num(o.coins, 0) && num(o.chapter, 1) && num(o.stars, 0) && num(o.mission, 0);
+const get = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
+const put = (k, v) => { try { localStorage.setItem(k, v); return true; } catch { return false; } };
 // null = nothing stored, undefined = stored but damaged (or storage unreadable)
-function read(k) { try { const s = localStorage.getItem(k); if (s == null) return null; const o = JSON.parse(s); return isObj(o) ? o : undefined; } catch { return undefined; } }
-let status = 'new'; // 'new' | 'ok' | 'restored' — how this session's save was loaded
+function read(k) { try { const s = localStorage.getItem(k); if (s == null) return null; const o = JSON.parse(s); return usable(o) ? o : undefined; } catch { return undefined; } }
+let status = 'new'; // 'new' | 'ok' | 'restored' | 'damaged' — how this session's save was loaded
 function load() {
   const main = read(KEY); if (main) { status = 'ok'; return main; }
-  if (main === undefined) { const b = read(BAK); if (b) { status = 'restored'; try { localStorage.setItem(KEY, JSON.stringify(b)); } catch {} return b; } }
+  if (main === undefined) { // stored but unreadable: keep the broken copy aside, then try the backup
+    const raw = get(KEY); if (raw != null) put(KEY + '_damaged', raw);
+    const b = read(BAK); if (b) { status = 'restored'; put(KEY, JSON.stringify(b)); return b; }
+    status = 'damaged';
+  }
   return null;
 }
 // upgrade an older save in place: only ever ADD fields, never remove or rename player data
 function migrate(o) { if (!(o.saveVersion >= SAVE_VERSION)) o.saveVersion = SAVE_VERSION; return o; }
-export const S = migrate(Object.assign(DEFAULTS(), load() || {}));
+const loaded = load();
+export const S = migrate(Object.assign(DEFAULTS(), loaded || {}));
 export const saveStatus = () => status;
-let lastBak = 0, warned = false;
-export function save() {
-  let ok = false;
-  try {
-    const s = JSON.stringify(S); localStorage.setItem(KEY, s); ok = true;
-    if (Date.now() - lastBak > 60000) { localStorage.setItem(BAK, s); lastBak = Date.now(); } // backup at most once a minute
-  } catch {}
-  if (!ok && !warned && typeof document !== 'undefined') { warned = true; setTimeout(() => toast('⚠️ Kemajuan tidak dapat disimpan', 'Progress could not be saved. Menu → Simpanan to export a backup.'), 0); }
-  return ok;
+let hasProgress = !!(loaded && loaded.started); // a real game is on disk: a not-started state may never replace it
+let myAt = (loaded && loaded.savedAt) || 0;     // savedAt of the last save this tab wrote or loaded
+let lastBody = null, lastBak = 0, frozen = false, armed = false, lastShown = 0, warned = '';
+const stats = { writes: 0, skipped: 0, refused: 0, shown: 0 };
+export const saveStats = () => ({ ...stats });
+const diskAt = () => { const o = read(KEY); return o && num(o.savedAt, 0) ? o.savedAt : 0; }; // only a valid save counts
+// true when another tab saved after this one: Continue reloads so the player gets the latest save
+export const newerOnDisk = () => diskAt() > myAt;
+function warn(kind) {
+  if (warned === kind || typeof document === 'undefined') return; warned = kind;
+  setTimeout(() => kind === 'tab' ? toast('⚠️ Permainan dibuka di tab lain', 'The game was saved in another tab. Reload this page to continue.')
+    : toast('⚠️ Kemajuan tidak dapat disimpan', 'Progress could not be saved. Menu → Simpanan to export a backup.'), 0);
 }
-export function wipe() { try { localStorage.removeItem(KEY); localStorage.removeItem(BAK); } catch {} }
+// save the game. Returns true when the save on disk matches the game (written now or already up to date).
+// quiet: no "Tersimpan ✓" (used for background saves when the tab is hidden).
+export function save({ quiet = false } = {}) {
+  if (frozen) return false;                                    // after Restart / Import: the page is about to reload
+  if (!S.started && hasProgress) { stats.refused++; return false; } // never replace a real game with a fresh one
+  if (!complete(S)) { stats.refused++; warn('save'); return false; }
+  const at = S.savedAt; delete S.savedAt; let body;
+  try { body = JSON.stringify(S); } catch { body = null; }
+  S.savedAt = at; if (body == null) { warn('save'); return false; }
+  if (body === lastBody) { stats.skipped++; return true; }    // nothing changed since the last write
+  if (diskAt() > myAt) { stats.refused++; warn('tab'); return false; } // another tab saved newer progress
+  const now = Math.max(Date.now(), myAt + 1); S.savedAt = now; const s = JSON.stringify(S);
+  if (!put(KEY, s)) { S.savedAt = at; warn('save'); return false; }
+  lastBody = body; myAt = now; stats.writes++; if (S.started) hasProgress = true;
+  if (now - lastBak > 60000 && put(BAK, s)) lastBak = now;     // backup at most once a minute
+  if (!quiet) savedTick();
+  return true;
+}
+// small "Tersimpan ✓" badge: only after Play, at most every 15 s, never over a mini-game or in a hidden tab
+let tickEl = null, tickT = 0;
+function savedTick() {
+  const now = Date.now(); if (!armed || now - lastShown < 15000) return;
+  if (typeof document !== 'undefined') { if (document.visibilityState === 'hidden') return; const g = document.getElementById('game'); if (g && !g.hidden) return; }
+  lastShown = now; stats.shown++;
+  if (typeof document === 'undefined') return;
+  if (!tickEl) { tickEl = document.createElement('div'); tickEl.id = 'saveTick'; tickEl.setAttribute('aria-live', 'polite'); tickEl.textContent = 'Tersimpan ✓'; document.body.append(tickEl); }
+  tickEl.classList.add('show'); clearTimeout(tickT); tickT = setTimeout(() => tickEl.classList.remove('show'), 1600);
+}
+// start autosave once: every 30 s (writes only if something changed), and when the tab is hidden or closed
+export function startAutosave(env = globalThis) {
+  if (armed) return false; armed = true;
+  env.setInterval(() => save(), AUTOSAVE_MS);
+  const doc = env.document;
+  if (doc && doc.addEventListener) doc.addEventListener('visibilitychange', () => { if (doc.visibilityState === 'hidden') save({ quiet: true }); });
+  if (env.addEventListener) env.addEventListener('pagehide', () => save({ quiet: true })); // iOS Safari: more reliable than visibilitychange on close
+  return true;
+}
+export function wipe() { frozen = true; try { localStorage.removeItem(KEY); localStorage.removeItem(BAK); } catch {} }
 // ask the browser not to clear our storage (best effort; some browsers decide on their own)
 export function keepSaveSafe() { try { navigator.storage && navigator.storage.persist && navigator.storage.persist().catch(() => {}); } catch {} }
 // export file: { game, kind, version, exported, data }
@@ -49,15 +106,15 @@ export function parseSave(text) {
   let o; try { o = JSON.parse(text); } catch { return { ok: false, reason: 'json' }; }
   if (isObj(o) && 'game' in o) { if (o.game !== 'MyKampung' || !isObj(o.data)) return { ok: false, reason: 'game' }; o = o.data; }
   if (!isObj(o)) return { ok: false, reason: 'shape' };
-  const num = (v, min) => typeof v === 'number' && Number.isFinite(v) && v >= min;
   if (!num(o.coins, 0) || !num(o.chapter, 1) || (o.stars !== undefined && !num(o.stars, 0))) return { ok: false, reason: 'shape' };
   return { ok: true, data: o };
 }
-// replace the save with an imported one; the current save is kept aside under KEY_preimport
+// replace the save with an imported one; the current save is kept aside under KEY_preimport.
+// Autosave stops (frozen) so nothing in this page can overwrite the import before the reload.
 export function importSave(data) {
   try {
     const cur = localStorage.getItem(KEY); if (cur) localStorage.setItem(KEY + '_preimport', cur);
-    const s = JSON.stringify(migrate({ ...data })); localStorage.setItem(KEY, s); localStorage.setItem(BAK, s); return true;
+    const s = JSON.stringify(migrate({ ...data, savedAt: Math.max(Date.now(), myAt + 1) })); localStorage.setItem(KEY, s); localStorage.setItem(BAK, s); frozen = true; return true;
   } catch { return false; }
 }
 export function checkDaily() { if (S.daily.date !== today()) { S.daily = { date: today(), count: 0, yards: [] }; save(); } }
