@@ -1,0 +1,153 @@
+{
+ "name": "Ikan laut HD (fishing activity)",
+ "category": "fish",
+ "models": {
+  "Ikan_Baronang": {
+   "rotation": [
+    90,
+    180,
+    0
+   ],
+   "id": "fish_Baronang"
+  },
+  "Ikan_Bawal_Hitam": {
+   "rotation": [
+    90,
+    180,
+    0
+   ],
+   "id": "fish_Bawal_Hitam"
+  },
+  "Ikan_Bawal_Putih": {
+   "rotation": [
+    90,
+    180,
+    0
+   ],
+   "id": "fish_Bawal_Putih"
+  },
+  "Ikan_Belanak": {
+   "rotation": [
+    90,
+    180,
+    0
+   ],
+   "id": "fish_Belanak"
+  },
+  "Ikan_Cencaru": {
+   "rotation": [
+    90,
+    180,
+    0
+   ],
+   "id": "fish_Cencaru"
+  },
+  "Ikan_Duri": {
+   "rotation": [
+    90,
+    180,
+    0
+   ],
+   "id": "fish_Duri"
+  },
+  "Ikan_Gelama": {
+   "rotation": [
+    90,
+    180,
+    0
+   ],
+   "id": "fish_Gelama"
+  },
+  "Ikan_Jenahak": {
+   "rotation": [
+    90,
+    180,
+    0
+   ],
+   "id": "fish_Jenahak"
+  },
+  "Ikan_Kembung": {
+   "rotation": [
+    90,
+    180,
+    0
+   ],
+   "id": "fish_Kembung"
+  },
+  "Ikan_Kerapu": {
+   "rotation": [
+    0,
+    90,
+    0
+   ],
+   "id": "fish_Kerapu"
+  },
+  "Ikan_Kerisi": {
+   "rotation": [
+    90,
+    180,
+    0
+   ],
+   "id": "fish_Kerisi"
+  },
+  "Ikan_Merah": {
+   "rotation": [
+    90,
+    180,
+    0
+   ],
+   "id": "fish_Merah"
+  },
+  "Ikan_Pari": {
+   "rotation": [
+    0,
+    90,
+    0
+   ],
+   "id": "fish_Pari"
+  },
+  "Ikan_Sebelah": {
+   "id": "fish_Sebelah"
+  },
+  "Ikan_Selar_Kuning": {
+   "rotation": [
+    90,
+    180,
+    0
+   ],
+   "id": "fish_Selar_Kuning"
+  },
+  "Ikan_Siakap": {
+   "rotation": [
+    90,
+    180,
+    0
+   ],
+   "id": "fish_Siakap"
+  },
+  "Ikan_Talang": {
+   "rotation": [
+    90,
+    180,
+    0
+   ],
+   "id": "fish_Talang"
+  },
+  "Ikan_Tamban": {
+   "rotation": [
+    90,
+    180,
+    0
+   ],
+   "id": "fish_Tamban"
+  },
+  "Ikan_Yu_Karang": {
+   "rotation": [
+    0,
+    90,
+    0
+   ],
+   "id": "fish_Yu_Karang"
+  }
+ }
+}

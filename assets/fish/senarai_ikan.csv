@@ -1,31 +1,34 @@
 ﻿Nama Melayu,Kategori bentuk,Fail GLB
-Ikan Kembung,mackerel,Ikan_Kembung.glb
-Ikan Selar Kuning,scad,Ikan_Selar_Kuning.glb
-Ikan Cencaru,scad,Ikan_Cencaru.glb
+Ikan Kembung,mackerel,../packs/fish_hd/Ikan_Kembung.glb
+Ikan Selar Kuning,scad,../packs/fish_hd/Ikan_Selar_Kuning.glb
+Ikan Cencaru,scad,../packs/fish_hd/Ikan_Cencaru.glb
 Ikan Selayang,scad,Ikan_Selayang.glb
-Ikan Tamban,scad,Ikan_Tamban.glb
+Ikan Tamban,scad,../packs/fish_hd/Ikan_Tamban.glb
 Ikan Bilis,slender,Ikan_Bilis.glb
 Ikan Tenggiri,slender,Ikan_Tenggiri.glb
 Ikan Tongkol,tuna,Ikan_Tongkol.glb
 Ikan Tuna Sirip Kuning,tuna,Ikan_Tuna_Sirip_Kuning.glb
 Ikan Alu-Alu,slender,Ikan_Alu-Alu.glb
-Ikan Kerapu,grouper,Ikan_Kerapu.glb
+Ikan Kerapu,grouper,../packs/fish_hd/Ikan_Kerapu.glb
 Ikan Kerapu Bara,grouper,Ikan_Kerapu_Bara.glb
-Ikan Jenahak,snapper,Ikan_Jenahak.glb
-Ikan Merah,snapper,Ikan_Merah.glb
-Ikan Siakap,snapper,Ikan_Siakap.glb
-Ikan Kerisi,snapper,Ikan_Kerisi.glb
-Ikan Bawal Putih,pomfret,Ikan_Bawal_Putih.glb
-Ikan Bawal Hitam,pomfret,Ikan_Bawal_Hitam.glb
+Ikan Jenahak,snapper,../packs/fish_hd/Ikan_Jenahak.glb
+Ikan Merah,snapper,../packs/fish_hd/Ikan_Merah.glb
+Ikan Siakap,snapper,../packs/fish_hd/Ikan_Siakap.glb
+Ikan Kerisi,snapper,../packs/fish_hd/Ikan_Kerisi.glb
+Ikan Bawal Putih,pomfret,../packs/fish_hd/Ikan_Bawal_Putih.glb
+Ikan Bawal Hitam,pomfret,../packs/fish_hd/Ikan_Bawal_Hitam.glb
 Ikan Bawal Emas,pomfret,Ikan_Bawal_Emas.glb
-Ikan Pari,ray,Ikan_Pari.glb
+Ikan Pari,ray,../packs/fish_hd/Ikan_Pari.glb
 Ikan Senangin,threadfin,Ikan_Senangin.glb
 Ikan Kurau,threadfin,Ikan_Kurau.glb
-Ikan Gelama,snapper,Ikan_Gelama.glb
+Ikan Gelama,snapper,../packs/fish_hd/Ikan_Gelama.glb
 Ikan Gerut-Gerut,snapper,Ikan_Gerut-Gerut.glb
-Ikan Talang,scad,Ikan_Talang.glb
-Ikan Belanak,slender,Ikan_Belanak.glb
-Ikan Sebelah,flat,Ikan_Sebelah.glb
+Ikan Talang,scad,../packs/fish_hd/Ikan_Talang.glb
+Ikan Belanak,slender,../packs/fish_hd/Ikan_Belanak.glb
+Ikan Sebelah,flat,../packs/fish_hd/Ikan_Sebelah.glb
 Ikan Jebong,trigger,Ikan_Jebong.glb
 Ikan Dengkis,snapper,Ikan_Dengkis.glb
 Ikan Biji Nangka,slender,Ikan_Biji_Nangka.glb
+Ikan Duri,catfish,../packs/fish_hd/Ikan_Duri.glb
+Ikan Baronang,rabbitfish,../packs/fish_hd/Ikan_Baronang.glb
+Ikan Yu Karang,shark,../packs/fish_hd/Ikan_Yu_Karang.glb

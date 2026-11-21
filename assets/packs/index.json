@@ -1,4 +1,255 @@
 {
  "version": 1,
- "packs": {}
+ "packs": {
+  "fish_hd": {
+   "name": "Ikan laut HD (fishing activity)",
+   "category": "fish",
+   "models": {
+    "fish_Baronang": {
+     "path": "assets/packs/fish_hd/Ikan_Baronang.glb",
+     "file": "fish_hd/Ikan_Baronang.glb",
+     "category": "fish",
+     "bytes": 740844,
+     "rotation": [
+      90,
+      180,
+      0
+     ],
+     "triangles": 10748,
+     "valid": true
+    },
+    "fish_Bawal_Hitam": {
+     "path": "assets/packs/fish_hd/Ikan_Bawal_Hitam.glb",
+     "file": "fish_hd/Ikan_Bawal_Hitam.glb",
+     "category": "fish",
+     "bytes": 848992,
+     "rotation": [
+      90,
+      180,
+      0
+     ],
+     "triangles": 17670,
+     "valid": true
+    },
+    "fish_Bawal_Putih": {
+     "path": "assets/packs/fish_hd/Ikan_Bawal_Putih.glb",
+     "file": "fish_hd/Ikan_Bawal_Putih.glb",
+     "category": "fish",
+     "bytes": 877952,
+     "rotation": [
+      90,
+      180,
+      0
+     ],
+     "triangles": 17670,
+     "valid": true
+    },
+    "fish_Belanak": {
+     "path": "assets/packs/fish_hd/Ikan_Belanak.glb",
+     "file": "fish_hd/Ikan_Belanak.glb",
+     "category": "fish",
+     "bytes": 695656,
+     "rotation": [
+      90,
+      180,
+      0
+     ],
+     "triangles": 14316,
+     "valid": true
+    },
+    "fish_Cencaru": {
+     "path": "assets/packs/fish_hd/Ikan_Cencaru.glb",
+     "file": "fish_hd/Ikan_Cencaru.glb",
+     "category": "fish",
+     "bytes": 704680,
+     "rotation": [
+      90,
+      180,
+      0
+     ],
+     "triangles": 13746,
+     "valid": true
+    },
+    "fish_Duri": {
+     "path": "assets/packs/fish_hd/Ikan_Duri.glb",
+     "file": "fish_hd/Ikan_Duri.glb",
+     "category": "fish",
+     "bytes": 738996,
+     "rotation": [
+      90,
+      180,
+      0
+     ],
+     "triangles": 15756,
+     "valid": true
+    },
+    "fish_Gelama": {
+     "path": "assets/packs/fish_hd/Ikan_Gelama.glb",
+     "file": "fish_hd/Ikan_Gelama.glb",
+     "category": "fish",
+     "bytes": 740600,
+     "rotation": [
+      90,
+      180,
+      0
+     ],
+     "triangles": 14320,
+     "valid": true
+    },
+    "fish_Jenahak": {
+     "path": "assets/packs/fish_hd/Ikan_Jenahak.glb",
+     "file": "fish_hd/Ikan_Jenahak.glb",
+     "category": "fish",
+     "bytes": 838636,
+     "rotation": [
+      90,
+      180,
+      0
+     ],
+     "triangles": 20454,
+     "valid": true,
+     "warnings": 1
+    },
+    "fish_Kembung": {
+     "path": "assets/packs/fish_hd/Ikan_Kembung.glb",
+     "file": "fish_hd/Ikan_Kembung.glb",
+     "category": "fish",
+     "bytes": 807204,
+     "rotation": [
+      90,
+      180,
+      0
+     ],
+     "triangles": 16118,
+     "valid": true
+    },
+    "fish_Kerapu": {
+     "path": "assets/packs/fish_hd/Ikan_Kerapu.glb",
+     "file": "fish_hd/Ikan_Kerapu.glb",
+     "category": "fish",
+     "bytes": 1256244,
+     "rotation": [
+      0,
+      90,
+      0
+     ],
+     "triangles": 3948,
+     "valid": true
+    },
+    "fish_Kerisi": {
+     "path": "assets/packs/fish_hd/Ikan_Kerisi.glb",
+     "file": "fish_hd/Ikan_Kerisi.glb",
+     "category": "fish",
+     "bytes": 673376,
+     "rotation": [
+      90,
+      180,
+      0
+     ],
+     "triangles": 10070,
+     "valid": true
+    },
+    "fish_Merah": {
+     "path": "assets/packs/fish_hd/Ikan_Merah.glb",
+     "file": "fish_hd/Ikan_Merah.glb",
+     "category": "fish",
+     "bytes": 921304,
+     "rotation": [
+      90,
+      180,
+      0
+     ],
+     "triangles": 8434,
+     "valid": true
+    },
+    "fish_Pari": {
+     "path": "assets/packs/fish_hd/Ikan_Pari.glb",
+     "file": "fish_hd/Ikan_Pari.glb",
+     "category": "fish",
+     "bytes": 1118180,
+     "rotation": [
+      0,
+      90,
+      0
+     ],
+     "triangles": 1995,
+     "valid": true
+    },
+    "fish_Sebelah": {
+     "path": "assets/packs/fish_hd/Ikan_Sebelah.glb",
+     "file": "fish_hd/Ikan_Sebelah.glb",
+     "category": "fish",
+     "bytes": 2581856,
+     "triangles": 37604,
+     "valid": true,
+     "warnings": 2
+    },
+    "fish_Selar_Kuning": {
+     "path": "assets/packs/fish_hd/Ikan_Selar_Kuning.glb",
+     "file": "fish_hd/Ikan_Selar_Kuning.glb",
+     "category": "fish",
+     "bytes": 667068,
+     "rotation": [
+      90,
+      180,
+      0
+     ],
+     "triangles": 10066,
+     "valid": true
+    },
+    "fish_Siakap": {
+     "path": "assets/packs/fish_hd/Ikan_Siakap.glb",
+     "file": "fish_hd/Ikan_Siakap.glb",
+     "category": "fish",
+     "bytes": 1024316,
+     "rotation": [
+      90,
+      180,
+      0
+     ],
+     "triangles": 8434,
+     "valid": true
+    },
+    "fish_Talang": {
+     "path": "assets/packs/fish_hd/Ikan_Talang.glb",
+     "file": "fish_hd/Ikan_Talang.glb",
+     "category": "fish",
+     "bytes": 644004,
+     "rotation": [
+      90,
+      180,
+      0
+     ],
+     "triangles": 10216,
+     "valid": true
+    },
+    "fish_Tamban": {
+     "path": "assets/packs/fish_hd/Ikan_Tamban.glb",
+     "file": "fish_hd/Ikan_Tamban.glb",
+     "category": "fish",
+     "bytes": 752228,
+     "rotation": [
+      90,
+      180,
+      0
+     ],
+     "triangles": 14306,
+     "valid": true
+    },
+    "fish_Yu_Karang": {
+     "path": "assets/packs/fish_hd/Ikan_Yu_Karang.glb",
+     "file": "fish_hd/Ikan_Yu_Karang.glb",
+     "category": "fish",
+     "bytes": 890424,
+     "rotation": [
+      0,
+      90,
+      0
+     ],
+     "triangles": 2462,
+     "valid": true
+    }
+   }
+  }
+ }
 }

@@ -10,6 +10,7 @@ import { $, clamp, sfx, S, save, checkDaily, toast, loopSound, boatEngine, seaAm
 import { FISH, RARITY, fishLen } from './minigames.js';
 import { makeOcean, shoreWaves } from './ocean.js';
 import { skinFish } from './fishskin.js';
+import { loadPack } from './models.js';
 import { earn, spend, fmtRM, balance } from './wallet.js';
 
 const hyp = Math.hypot, rnd = Math.random;
@@ -171,14 +172,18 @@ export function seaFishScene({ T, environment, Sparks, palm, stiltHouse, putMode
     const splash = new Sparks(scene, 300, 0xffffff, .2), rain = new Sparks(scene, 900, 0xcfe6ff, .1);
     // hooked / showcase fish model
     let fishObj = null; const fishHolder = new T.Group(); scene.add(fishHolder); fishHolder.visible = false;
-    function setFishModel(sp, kg) { if (fishObj) fishHolder.remove(fishObj); fishObj = putModel(M, sp.model, fishHolder, 0, 0, { len: fishLen(kg) }) || (() => { const g = new T.Group(); const m = K.ball(.3, K.mat(0x9aa7b5), 0, 0, 0, g); m.scale.set(1.6, .7, .5); return g; })(); try { skinFish(fishObj, sp.id); } catch { } fishObj.position.y = 0; }
+    // Most fish models live in the GLB pack assets/packs/fish_hd (ids fish_<Name>, loaded on demand; putModel finds them
+    // once loaded). They are already textured, so the painted skin (skinFish) is applied to legacy models only.
+    loadPack('fish_hd');
+    const isLegacy = (sp) => !!M[sp.model];
+    function setFishModel(sp, kg) { if (fishObj) fishHolder.remove(fishObj); fishObj = putModel(M, sp.model, fishHolder, 0, 0, { len: fishLen(kg) }) || (() => { const g = new T.Group(); const m = K.ball(.3, K.mat(0x9aa7b5), 0, 0, 0, g); m.scale.set(1.6, .7, .5); return g; })(); if (isLegacy(sp)) try { skinFish(fishObj, sp.id); } catch { } fishObj.position.y = 0; }
 
     // ---------- fish living around the bait: drawn from the species that can bite here (zone, depth, bait, time, weather)
     const ambG = new T.Group(); scene.add(ambG); const amb = []; const motes = new Sparks(scene, 260, 0xd8f3ff, .045);
     function ambClear() { for (const f of amb) ambG.remove(f.o); amb.length = 0; }
     function ambSpawn(sp, kg, far) {
       const L = clamp(seaLen(sp, kg) / 100, .18, 2.4), o = putModel(M, sp.model, ambG, 0, 0, { len: L }) || (() => { const g = new T.Group(); const m = K.ball(.25, K.mat(0x9aa7b5), 0, 0, 0, g); m.scale.set(L * 2, .6, .45); ambG.add(g); return g; })();
-      try { skinFish(o, sp.id); } catch { }
+      if (isLegacy(sp)) try { skinFish(o, sp.id); } catch { }
       const low = sp.beh === 'rock' || sp.beh === 'heavy';
       const f = { o, sp, L, low, r: far ? 7 + rnd() * 3 : 1.4 + rnd() * 3.6, ang: rnd() * 6.28, w: (.22 + rnd() * .3) * (rnd() < .5 ? -1 : 1) * (.6 + sp.spd * .4), dy: (rnd() - .5) * 1.8, ph: rnd() * 6, mode: 'swim', x: F.bx, y: -F.bd, z: F.bz, hx: 1, hz: 0, fade: 0 };
       f.x = F.bx + Math.cos(f.ang) * f.r; f.z = F.bz + Math.sin(f.ang) * f.r; amb.push(f); return f;

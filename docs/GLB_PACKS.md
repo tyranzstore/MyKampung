@@ -5,7 +5,7 @@ Add new 3D models to the game by uploading them to GitHub. You never need to sen
 New models are **not** placed in the village or mini-games automatically. Once a pack is indexed, its models are available
 in code through the asset manager, so a scene can use them safely (see "Using a pack in code").
 
-The existing 253 models (`assets/models.json`, `assets/models2.json`, `MODEL_FILES`) are unchanged and load exactly as before.
+The existing 237 models (`assets/models.json`, `assets/models2.json`, `MODEL_FILES`) are unchanged and load exactly as before.
 
 ## 1. Prepare the files
 

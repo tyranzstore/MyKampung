@@ -37,7 +37,7 @@ const tests = [];
 const test = (name, fn) => tests.push([name, fn]);
 
 test('legacy keys are read from MODEL_FILES and models2.json (nothing repacked)', () => {
-  assert.ok(legacy.has('palm1') && legacy.has('hero') && legacy.has('city/Car')); assert.ok(legacy.size >= 250, String(legacy.size));
+  assert.ok(legacy.has('palm1') && legacy.has('hero') && legacy.has('city/Car')); assert.ok(legacy.size >= 230, String(legacy.size)); // 253 before 16 fish moved to the fish_hd pack
 });
 test('models get unique ids, paths, categories, sizes, deps and pack.json metadata', () => {
   const d = index.packs.demo; assert.equal(d.name, 'Demo');
