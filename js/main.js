@@ -683,3 +683,8 @@ function loop(now) {
 }
 requestAnimationFrame(loop);
 window.__town = { S, get town() { return town; }, onTap, CHAPTERS, playGame, cur };
+// cache model packs and code for fast repeat loads (see sw.js); the game works the same without it
+if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+  const reg = () => navigator.serviceWorker.register('sw.js').catch((e) => console.warn('service worker not registered', e));
+  document.readyState === 'complete' ? reg() : addEventListener('load', reg); // main.js awaits on load, so 'load' may have passed
+}

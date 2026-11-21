@@ -2,7 +2,7 @@
 // Same interface as the 2D town (createTown) so main.js can use either.
 // Static scenery is built from simple parts, then "baked" (merged) into a few draw calls so it runs well on phones.
 import { clamp, lerp, mulberry32 } from './core.js';
-import { loadModels, putModel, putAnimated, loadGLB } from './models.js';
+import { loadModels, putModel, putAnimated, loadGLB, isShared } from './models.js';
 import { makeOcean, shoreWaves } from './ocean.js';
 
 let T, mergeGeometries, GLTFLoader;
@@ -413,7 +413,7 @@ export async function createTown3D(canvas, hooks) {
   const objects = {}; // id -> { box: Box3, label }
   function buildStatic() {
     const flags = hooks.flags();
-    if (baked) { scene.remove(baked); baked.traverse(o => { if (o.isMesh && o.geometry) o.geometry.dispose(); }); }
+    if (baked) { scene.remove(baked); baked.traverse(o => { if (o.isMesh && o.geometry && !isShared(o.geometry)) o.geometry.dispose(); }); }
     for (const b of pickBoxes) scene.remove(b);
     pickBoxes = []; lamps = [];
     const root = new T.Group(); const K = kit(root); const r = mulberry32(77);
@@ -707,7 +707,11 @@ export async function createTown3D(canvas, hooks) {
   let zoom = isTouch ? .95 : 1.15, goal = null;
   const view = { get z() { return zoom; } };
   let cw = 0, ch = 0;
-  function resize() { cw = canvas.clientWidth; ch = canvas.clientHeight; renderer.setPixelRatio(Math.min(devicePixelRatio || 1, isTouch ? 1.75 : 2)); renderer.setSize(cw, ch, false); }
+  // shortcut: one-time check, slow phones drop to 1x pixels; upgrade to continuous quality tiers if needed
+  let maxDpr = isTouch ? 1.75 : 2; const perf = { t: 0, n: 0, done: !isTouch };
+  function checkPerf(dt) { if (perf.done || t < 3) return; perf.t += dt; perf.n++; if (perf.t < 4) return; perf.done = true;
+    if (perf.t / perf.n > 1 / 35 && maxDpr > 1) { maxDpr = 1; resize(); } } // under ~35 fps: render fewer pixels
+  function resize() { cw = canvas.clientWidth; ch = canvas.clientHeight; renderer.setPixelRatio(Math.min(devicePixelRatio || 1, maxDpr)); renderer.setSize(cw, ch, false); }
   addEventListener('resize', resize); resize();
   const VIEW_H = 26; // world units visible vertically at zoom 1
   function updateCam() {
@@ -722,9 +726,10 @@ export async function createTown3D(canvas, hooks) {
   const pointers = new Map(); let pinch = null, downInfo = null;
   canvas.addEventListener('pointerdown', (e) => { canvas.setPointerCapture(e.pointerId); pointers.set(e.pointerId, { x: e.offsetX, y: e.offsetY }); goal = null;
     if (pointers.size === 1) downInfo = { x: e.offsetX, y: e.offsetY, t: performance.now(), moved: 0 };
-    if (pointers.size === 2) { const [a, b] = [...pointers.values()]; pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), z: zoom }; downInfo = null; } });
+    if (pointers.size === 2) { const [a, b] = [...pointers.values()]; pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), z: zoom, mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 }; downInfo = null; } });
   canvas.addEventListener('pointermove', (e) => { const p = pointers.get(e.pointerId); if (!p) return; const dx = e.offsetX - p.x, dy = e.offsetY - p.y; p.x = e.offsetX; p.y = e.offsetY;
-    if (pointers.size === 2 && pinch) { const [a, b] = [...pointers.values()]; zoom = pinch.z * Math.hypot(a.x - b.x, a.y - b.y) / pinch.d; clampT(); return; }
+    if (pointers.size === 2 && pinch) { const [a, b] = [...pointers.values()]; zoom = pinch.z * Math.hypot(a.x - b.x, a.y - b.y) / Math.max(1, pinch.d); clampT();
+      const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2; panBy(mx - pinch.mx, my - pinch.my); pinch.mx = mx; pinch.my = my; return; } // two-finger drag also pans (follows the midpoint)
     if (downInfo) downInfo.moved += Math.abs(dx) + Math.abs(dy); panBy(dx, dy); });
   const up = (e) => { if (!pointers.has(e.pointerId)) return; pointers.delete(e.pointerId); if (pointers.size < 2) pinch = null;
     if (downInfo && pointers.size === 0 && downInfo.moved < 10 && performance.now() - downInfo.t < 600) tap(e.offsetX, e.offsetY); if (pointers.size === 0) downInfo = null; };
@@ -819,7 +824,7 @@ export async function createTown3D(canvas, hooks) {
     for (const s of glowSprites) { s.visible = tod.night > .15; s.material.opacity = tod.night; }
     scene.background.copy(SEA).lerp(new T.Color(0x0c1a33), tod.night * .8); ocean.update(t, scene.background); shore(t);
     updateCam();
-    renderer.render(scene, cam);
+    checkPerf(dt); renderer.render(scene, cam);
     // labels & markers
     for (const e of els.values()) e._seen = false;
     // declutter: place markers by priority, skip any that would overlap one already placed or sit under the HUD

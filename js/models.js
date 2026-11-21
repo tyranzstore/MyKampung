@@ -46,7 +46,7 @@ async function loadAll(onProgress) {
   if (r1.status === 'fulfilled') pack = r1.value; else { console.warn('model pack failed', r1.reason); return M; }
   if (r2.status === 'fulfilled') { pack2 = r2.value; for (const k of Object.keys(pack2)) { MODEL_FILES[k] = k; pack[k] = pack2[k]; } }
   onProgress && onProgress(.35); keys = Object.keys(MODEL_FILES);
-  const b64 = (s) => { const bin = atob(s), u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return u.buffer; };
+  const b64 = (s) => { if (Uint8Array.fromBase64) return Uint8Array.fromBase64(s).buffer; const bin = atob(s), u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return u.buffer; };
   await Promise.all(keys.map(async (k) => {
     try {
       const file = MODEL_FILES[k]; if (!pack[file]) throw new Error('missing ' + file);
@@ -55,11 +55,21 @@ async function loadAll(onProgress) {
       inner.position.sub(new T.Vector3(c.x, box.min.y, c.z));
       const wrap = new T.Group(); wrap.add(inner); wrap.userData.size = box.getSize(new T.Vector3()); wrap.userData.anims = g.animations || []; let sk = false; inner.traverse(o => { if (o.isSkinnedMesh) sk = true; }); wrap.userData.skinned = sk;
       inner.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; if (o.material && o.material.metalness === 1 && !o.material.map) { o.material = o.material.clone(); o.material.metalness = .25; o.material.roughness = .45; } } }); // glTF default material is fully metallic → black without an env map
-      M[k] = wrap;
+      markShared(wrap); M[k] = wrap;
     } catch (e) { console.warn('model failed', k, e); }
     onProgress && onProgress(.35 + .65 * (++done / keys.length));
   }));
   return M;
+}
+// Geometries, materials and textures of cached models are shared by every clone (town and mini-games).
+// Cleanup code must skip them, or the next scene that uses the model has to upload it to the GPU again.
+const SHARED = new WeakSet();
+export const isShared = (x) => SHARED.has(x);
+function markShared(root) {
+  root.traverse((o) => {
+    if (o.geometry) SHARED.add(o.geometry);
+    for (const m of [].concat(o.material || [])) { SHARED.add(m); for (const v of Object.values(m)) if (v && v.isTexture) SHARED.add(v); }
+  });
 }
 // Load one GLB that is NOT in the model packs (e.g. a detailed NPC), on demand and only once per URL.
 // Resolves to a wrapped model ready for putModel-style cloning (feet on y=0, centred, userData.size),
@@ -75,7 +85,7 @@ export function loadGLB(url) {
       inner.position.sub(new T.Vector3(c.x, box.min.y, c.z));
       const wrap = new T.Group(); wrap.add(inner); wrap.userData.size = box.getSize(new T.Vector3()); wrap.userData.anims = g.animations || [];
       inner.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
-      return wrap;
+      markShared(wrap); return wrap;
     } catch (e) { console.warn('model failed', url, e); return null; }
   })());
   return glbCache.get(url);

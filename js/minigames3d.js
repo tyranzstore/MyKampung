@@ -1,8 +1,8 @@
 // 3D mini-games (Three.js): tebas laman, baiki rumah, cuci kereta.
 // Works with mouse and touch: every pointer is raycast into the scene.
 import { $, clamp, lerp, sfx, loopSound, toast, mulberry32, boatEngine, seaAmbience, musicDuck } from './core.js';
-import { Grid, progressBar, beachCore, TRASH, BINS, setupHelp, hideTutorial, fishCore, boatCore, drawHull, HULL, halfW, SPOTS, RARITY, fishLen, showFishCard, hideFishCard } from './minigames.js';
-import { loadModels, putModel, putAnimated } from './models.js';
+import { Grid, progressBar, beachCore, TRASH, BINS, setupHelp, pauseWhenHidden, hideTutorial, fishCore, boatCore, drawHull, HULL, halfW, SPOTS, RARITY, fishLen, showFishCard, hideFishCard } from './minigames.js';
+import { loadModels, putModel, putAnimated, isShared } from './models.js';
 import { initSkins, skinFish } from './fishskin.js';
 import { makeOcean, shoreWaves } from './ocean.js';
 import { futsalScenes } from './futsal3d.js';
@@ -141,13 +141,14 @@ export async function runGame3D(kind, opts = {}) {
       tools(list) { const t = $('gTools'); t.innerHTML = ''; for (const it of list) { const b = document.createElement('button'); b.innerHTML = it.html; if (it.sel) b.classList.add('sel'); if (it.on) b.onclick = () => it.on(b); else b.disabled = true; t.append(b); } },
       elapsed() { const n = performance.now(); return (n - tStart - paused - (pauseAt ? n - pauseAt : 0)) / 1000; },
       pause(on) { if (on) { if (!pauseAt) pauseAt = performance.now(); } else if (pauseAt) { paused += performance.now() - pauseAt; pauseAt = 0; } },
+      isPaused: () => !!pauseAt,
       finish(result) { if (!alive) return; const time = api.elapsed(); bar.full(); finishing = true; setTimeout(() => { if (!alive) return; alive = false; cleanup(); resolve({ ...result, time }); }, 700); },
     };
     $('gTitle').textContent = ({ grass: 'Tebas Laman', repair: 'Baiki Rumah', carwash: 'Cuci Kereta', padi: 'Tuai Padi', boat: 'Baiki Bot', fish: 'Memancing', beach: 'Bersih Pantai', futsal3v3: 'Perlawanan 3v3 · Futsal', seafish: 'Simulator Pancing Laut', jalandrag: 'Jalan Drag' }[kind] || (ACTIVITIES[kind] || {}).title);
     $('gTools').innerHTML = ''; bar.reset();
     const K = kit();
     const game = { grass: Grass3D, repair: Repair3D, carwash: CarWash3D, padi: Padi3D, boat: Boat3D, fish: Fish3D, beach: Beach3D, futsal: Futsal3D, volley: VolleyV2, photo: PhotoV2, drag: Drag3D, market: Market3D, mall: MallV2, futsal3v3: Futsal3v3_3D, seafish: SeaFish3D, jalandrag: JalanDrag3D }[kind](K, api, opts, M);
-    window.__mg = game; setupHelp(kind, api);
+    window.__mg = game; setupHelp(kind, api); const unHide = pauseWhenHidden(api);
     const camera = new T.PerspectiveCamera(50, 1, .1, 200);
     const curPos = game.view.pos.clone(), curLook = game.view.look.clone();
     const rc = new T.Raycaster(), ndc = new T.Vector2();
@@ -168,11 +169,11 @@ export async function runGame3D(kind, opts = {}) {
     $('gClose').onclick = () => { if (!alive) return; alive = false; cleanup(); resolve(null); };
     window.__mg3 = { ptr, inject(type, x, y, extra = {}) { Object.assign(ptr, { x, y, on: true, hit: null }, extra); if (type === 'down') { ptr.down = true; ptr.lx = x; ptr.ly = y; game.down && game.down(ptr); } else if (type === 'move') game.move && game.move(ptr); else doUp(); } };
     function cleanup() {
-      ov.hidden = true; hideTutorial(); ov.classList.remove('is3d'); game.stop && game.stop();
+      ov.hidden = true; hideTutorial(); ov.classList.remove('is3d'); game.stop && game.stop(); unHide();
       cv.removeEventListener('pointerdown', down); cv.removeEventListener('pointermove', move); cv.removeEventListener('pointerup', up); cv.removeEventListener('pointercancel', up);
       game.scene.traverse((o) => {
-        if (o.geometry) o.geometry.dispose();
-        if (o.material) for (const m of [].concat(o.material)) { if (m.map) m.map.dispose(); m.dispose(); }
+        if (o.geometry && !isShared(o.geometry)) o.geometry.dispose(); // shared = model cache, reused by the town and the next game
+        if (o.material) for (const m of [].concat(o.material)) { if (m.map && !isShared(m.map)) m.map.dispose(); if (!isShared(m)) m.dispose(); }
       });
     }
     function loop(now) {
