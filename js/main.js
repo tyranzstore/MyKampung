@@ -1,4 +1,4 @@
-import { $, S, save, wipe, checkDaily, audioInit, setMuted, sfx, toast, dialog, modal, ui, wantMusic, setMusic } from './core.js';
+import { $, S, save, wipe, saveStatus, keepSaveSafe, exportSave, parseSave, importSave, checkDaily, audioInit, setMuted, sfx, toast, dialog, modal, ui, wantMusic, setMusic } from './core.js';
 import { createTown, NPCS } from './town.js';
 import { createTown3D } from './town3d.js';
 import { runGame, FISH, RARITY } from './minigames.js';
@@ -543,7 +543,7 @@ $('muteBtn').textContent = S.muted ? '🔇' : '🔊';
 $('fsBtn').onclick = () => { try { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen().catch(() => {}); } catch {} };
 $('menuBtn').onclick = async () => {
   sfx.tap();
-  const v = await modal({ kicker: 'MENU', title: 'MyKampung', html: `<p class="muted">Gelaran · Title: <b>${rank()}</b> · ⭐ ${S.stars} · 💵 ${fmtRM(balance())}</p>`, buttons: [['Cara main · How to play', 'help'], ['🎉 Aktiviti · Activities', 'acts'], ['Latihan mini game · Practice', 'practice'], [S.timeMode === 'day' ? 'Masa: sentiasa siang' : 'Masa: ikut jam sebenar', 'time'], ['🐟 Buku Ikan · Fish book', 'fishbook'], [S.music === false ? '🎵 Muzik: tutup → buka' : '🎵 Muzik: buka → tutup', 'music'], [S.gfx === '2d' ? 'Grafik: 2D (ringan) → tukar 3D' : 'Grafik: 3D → tukar 2D (ringan)', 'gfx'], ['Kredit · Credits', 'credits'], ['Mula semula · Restart', 'reset'], ['Tutup · Close', 'ok', true]] });
+  const v = await modal({ kicker: 'MENU', title: 'MyKampung', html: `<p class="muted">Gelaran · Title: <b>${rank()}</b> · ⭐ ${S.stars} · 💵 ${fmtRM(balance())}</p>`, buttons: [['Cara main · How to play', 'help'], ['🎉 Aktiviti · Activities', 'acts'], ['Latihan mini game · Practice', 'practice'], [S.timeMode === 'day' ? 'Masa: sentiasa siang' : 'Masa: ikut jam sebenar', 'time'], ['🐟 Buku Ikan · Fish book', 'fishbook'], [S.music === false ? '🎵 Muzik: tutup → buka' : '🎵 Muzik: buka → tutup', 'music'], [S.gfx === '2d' ? 'Grafik: 2D (ringan) → tukar 3D' : 'Grafik: 3D → tukar 2D (ringan)', 'gfx'], ['💾 Simpanan · Save backup', 'savedata'], ['Kredit · Credits', 'credits'], ['Mula semula · Restart', 'reset'], ['Tutup · Close', 'ok', true]] });
   if (v === 'help') return howTo();
   if (v === 'music') { setMusic(S.music === false); toast(S.music === false ? 'Muzik ditutup' : 'Muzik dibuka', S.music === false ? 'Music off' : 'Music on'); return; }
   if (v === 'acts') {
@@ -581,8 +581,36 @@ $('menuBtn').onclick = async () => {
   }
   if (v === 'time') { S.timeMode = S.timeMode === 'day' ? 'real' : 'day'; save(); toast(S.timeMode === 'day' ? 'Sentiasa siang' : 'Ikut jam sebenar', S.timeMode === 'day' ? 'Always daytime' : 'Follows your real clock'); return; }
   if (v === 'gfx') { S.gfx = S.gfx === '2d' ? '3d' : '2d'; save(); location.reload(); return; }
+  if (v === 'savedata') return saveMenu();
   if (v === 'reset') { const c = await modal({ title: 'Mula semula?', body: 'Semua kemajuan akan hilang. All progress will be lost.', buttons: [['Ya, padam · Yes, erase', 'yes'], ['Batal · Cancel', 'no', true]] }); if (c === 'yes') { wipe(); location.reload(); } }
 };
+// ------------------------------------------------------------ save backup: export to a file, import from a file
+async function saveMenu() {
+  let picked = null;
+  const p = modal({ kicker: '💾 SIMPANAN · SAVE BACKUP', title: 'Simpan kemajuan anda', html: `<p>Muat turun fail simpanan untuk elak kemajuan hilang (tukar telefon, padam data pelayar). <small class="muted">Download a save file so your progress is never lost (new phone, cleared browser data).</small></p>
+    <p class="muted small">Bab ${S.chapter} · ⭐ ${S.stars} · ${fmtRM(balance())}. Foto galeri tidak termasuk. · Gallery photos are not included.</p>
+    <div class="btns"><label class="fileBtn">📂 Import fail · Import file<input id="saveFile" type="file" accept=".json,application/json,text/plain" hidden></label></div>`,
+    buttons: [['⬇️ Eksport · Export', 'export', true], ['Tutup · Close', 'ok']] });
+  const inp = $('saveFile');
+  inp.onchange = () => { picked = inp.files && inp.files[0]; if (picked) $('mBtns').lastChild.click(); };
+  const v = await p;
+  if (v === 'export') {
+    try {
+      const blob = new Blob([exportSave()], { type: 'application/json' }), url = URL.createObjectURL(blob), a = document.createElement('a');
+      a.href = url; a.download = `mykampung-save-${new Date().toISOString().slice(0, 10)}.json`; document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 5000);
+      toast('💾 Fail simpanan dimuat turun', 'Save file downloaded — keep it somewhere safe');
+    } catch { toast('Eksport gagal', 'Export failed'); }
+    return;
+  }
+  if (!picked) return;
+  let text = ''; try { text = await picked.text(); } catch {}
+  const r = parseSave(text);
+  if (!r.ok) return modal({ kicker: '💾 IMPORT', title: 'Fail tidak sah', body: 'Ini bukan fail simpanan MyKampung. Kemajuan anda tidak berubah. · This is not a MyKampung save file. Your progress is unchanged.', buttons: [['OK', 'ok', true]] });
+  const d = r.data;
+  const c = await modal({ kicker: '💾 IMPORT', title: 'Ganti kemajuan?', html: `<p>Fail ini: <b>Bab ${d.chapter}</b> · ⭐ ${d.stars || 0} · ${fmtRM(d.coins)}</p><p>Sekarang: <b>Bab ${S.chapter}</b> · ⭐ ${S.stars} · ${fmtRM(balance())}</p><p class="muted">Kemajuan sekarang akan diganti. · Your current progress will be replaced by this file.</p>`, buttons: [['Ya, import · Yes, import', 'yes'], ['Batal · Cancel', 'no', true]] });
+  if (c !== 'yes') return;
+  if (importSave(d)) location.reload(); else toast('Import gagal', 'Import failed — storage is full or blocked');
+}
 function howTo() {
   return modal({ kicker: 'CARA MAIN · HOW TO PLAY', title: 'Selamat datang!', html: `<ul class="help">
     <li><b>Peta</b> — seret untuk alih, cubit / roda tetikus / butang + − untuk zum. <small>Drag to pan, pinch or scroll to zoom.</small></li>
@@ -605,7 +633,8 @@ setInterval(() => { clock(); const before = S.daily.date; checkDaily(); if (befo
 
 // ------------------------------------------------------------ title & loop
 async function start() {
-  audioInit(); $('title').hidden = true; sfx.good(); wantMusic('kampung');
+  audioInit(); $('title').hidden = true; sfx.good(); wantMusic('kampung'); keepSaveSafe();
+  if (saveStatus() === 'restored') setTimeout(() => toast('💾 Simpanan dipulihkan', 'Your save was damaged and has been restored from the backup'), 3000); // after the mission toast
   if (!S.started) {
     S.started = true; save();
     await modal({ kicker: TOWN.toUpperCase(), title: 'Pulang ke Kampung', html: '<p>Bertahun-tahun kau merantau di bandar. Hari ni kau pulang — tapi kampung dah lain. Kedai tutup, laman semak, orang muda tak ada.</p><p class="muted">You spent years working in the city. Today you are back — but the village has changed. Shops closed, yards overgrown, the young people gone.</p><p><b>Hidupkan semula ' + TOWN + '!</b></p>', buttons: [['Jom mula · Let\'s go', 'ok', true]] });
