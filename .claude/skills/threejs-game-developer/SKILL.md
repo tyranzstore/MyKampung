@@ -1,3 +1,4 @@
+---
 name: threejs-game-developer
 description: Use when implementing or refactoring Three.js gameplay, scenes, cameras, collision, animation, and architecture.
 ---
