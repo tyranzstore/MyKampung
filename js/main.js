@@ -229,7 +229,7 @@ function addStars(n) { const before = rank(); S.stars += n; save(); bump('stars'
 function showMission() { const c = cur(); if (c) { toast(`Misi: ${c.bm}`, c.en); town.focus(targetOf(c)); } }
 
 // ------------------------------------------------------------ town
-const heroAt = () => { const c = cur(); if (!c) return 'house_abah'; const id = targetOf(c); return { jeti: 'mat', padi: 'hassan', carwash: 'din', yard_abah: 'abah', house_abah: 'abah', pantai: 'kaklong', jambatan: 'kaklong' }[id] || id; };
+const heroAt = () => { const c = cur(); if (!c) return 'house_abah'; const id = targetOf(c); return { jeti: 'mat', padi: 'hassan', carwash: 'din', yard_abah: 'abah', house_abah: 'abah', pantai: 'kaklong', jambatan: 'photo' }[id] || id; }; // jambatan: wait at the photo booth, the nearest spot that sees the bridge
 const townHooks = { flags, markers, onTap, npcVisible, heroAt };
 let town = null;
 if (S.gfx !== '2d' && has3D()) {

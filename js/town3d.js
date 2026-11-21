@@ -20,9 +20,19 @@ const isTouch = matchMedia('(pointer:coarse)').matches;
 // same layout ids as the 2D town (missions refer to these)
 const YARDS = { abah: { i0: 7, j0: 11, i1: 12, j1: 14 }, ani: { i0: 9, j0: 23, i1: 13, j1: 26 }, abu: { i0: 21, j0: 27, i1: 26, j1: 30 } };
 const PADI = { i0: 2, j0: 20, i1: 9, j1: 29 };
-const AREAS = { yard_abah: YARDS.abah, yard_ani: YARDS.ani, yard_abu: YARDS.abu, padi: PADI, jeti: { i0: 9, j0: 0, i1: 12.5, j1: 5 }, pantai: { i0: 30.5, j0: 2.5, i1: 41.5, j1: 9.3 } };
-// east of the kampung: Pantai Miami (Seberang Takir) and the river mouth with the Jambatan Angkat
-const RIVER = { x0: 55, x1: 61 }, BR = { z: -8.5, y: 1.6, w: 3 };
+const AREAS = { yard_abah: YARDS.abah, yard_ani: YARDS.ani, yard_abu: YARDS.abu, padi: PADI, jeti: { i0: 9, j0: 0, i1: 12.5, j1: 5 }, pantai: { i0: 30.5, j0: 2.85, i1: 47, j1: 9.5 } };
+// east of the kampung: Pantai Miami (Seberang Takir) and, far along the coast, the river mouth with the Jambatan Angkat
+const RIVER = { x0: 135, x1: 141 }, BR = { z: -8.5, y: 1.6, w: 3 }, BX = (RIVER.x0 + RIVER.x1) / 2; // BX: river centre, the bridge's middle
+const EAST = 184, WEST = -40; // land edges: bridge ramps end at BX + 11.5, then 25 clear + a walkable margin
+// Pantai Miami zones: centre x/z and footprint w/d (world units). One table drives placement, the scatter
+// exclusion and test/town/beach.test.mjs (at least 6 units of clear sand between any two zones).
+export const BEACH = {
+  lekor: { x: 34.7, z: -19.5, w: 6.4, d: 4.8 }, um1: { x: 46, z: -21.6, w: 3.5, d: 3 }, sign: { x: 52, z: -12.3, w: 4.3, d: 4.3 },
+  wakaf: { x: 61.15, z: -19.5, w: 3.3, d: 3.3 }, um2: { x: 70.55, z: -21.6, w: 3.5, d: 3 }, volley: { x: 82.4, z: -20.2, w: 8.2, d: 6 },
+  photo: { x: 93.75, z: -19.5, w: 2.5, d: 2.7 }, pasar: { x: 33.5, z: -2.6, w: 6.6, d: 6.8 }, futsal: { x: 49, z: 0, w: 11, d: 6.8 },
+};
+export const BRIDGE_SPAN = { x0: BX - 11.5, x1: BX + 11.5, z: BR.z }; // ramp to ramp, for tests
+const inZone = (x, z, m = 0) => Object.values(BEACH).some((b) => Math.abs(x - b.x) < b.w / 2 + m && Math.abs(z - b.z) < b.d / 2 + m);
 
 export const NPCS3D = {
   abah: { i: 12.6, j: 10.4, look: { shirt: 0xf4f1e6, pants: 0x3d5a80, skin: 0xb5794b, songkok: true, beard: true, sarong: true } },
@@ -33,7 +43,7 @@ export const NPCS3D = {
   lim: { i: 17.3, j: 8.3, look: { shirt: 0xecf0f1, pants: 0x34495e, skin: 0xe0b08a, hair: 0x333333 } },
   ani: { i: 13.4, j: 22.5, look: { shirt: 0xa3cbe8, pants: 0x2c3e50, skin: 0xc78b5a, tudung: 0x1f6f9c, sarong: true } },
   abu: { i: 21.3, j: 26.4, look: { shirt: 0x95a5a6, pants: 0x2c3e50, skin: 0xa8703e, songkok: true } },
-  kaklong: { i: 36.75, j: 8.5, look: { shirt: 0xf6a5c0, pants: 0x6c3483, skin: 0xc68a5a, tudung: 0xd35400, sarong: true } },
+  kaklong: { i: 35.15, j: 6.6, look: { shirt: 0xf6a5c0, pants: 0x6c3483, skin: 0xc68a5a, tudung: 0xd35400, sarong: true } },
   mat: { i: 11.7, j: 4.4, look: { shirt: 0xf39c12, pants: 0x34495e, skin: 0x8d5a34, cap: 0xecf0f1, beard: true } },
 };
 const VILLAGERS = [
@@ -353,8 +363,8 @@ export async function createTown3D(canvas, hooks) {
   // the sea: Gerstner-wave ocean, calm at the beach and choppier offshore (sea lies at world z < -24.4)
   const ocean = makeOcean(T, { w: 420, h: 420, seg: .62, amp: .24, shoreY: 24.6, shoreFade: 14, deep: 0x0b4a72, shallow: 0x2fb0cf, sky: 0xcdeefa, repeat: 40 });
   ocean.mesh.position.set(12, -.14, 0); ground.add(ocean.mesh);
-  const shore1 = shoreWaves(T, ground, { segs: [[-30, 54.8], [61.2, 80]], shoreZ: -24.35, seaward: -1, reach: 3.6, period: 7 });
-  const shore2 = shoreWaves(T, ground, { segs: [[-30, 80]], shoreZ: 72.6, seaward: 1, reach: 2.6, period: 8, n: 2 });
+  const shore1 = shoreWaves(T, ground, { segs: [[WEST, RIVER.x0 - .2], [RIVER.x1 + .2, EAST]], shoreZ: -24.35, seaward: -1, reach: 3.6, period: 7 });
+  const shore2 = shoreWaves(T, ground, { segs: [[WEST, EAST]], shoreZ: 82.6, seaward: 1, reach: 2.6, period: 8, n: 2 });
   const shore = (t) => { shore1(t); shore2(t); };
   const grass = gk.add(new T.PlaneGeometry(size, size - 5 * TS), new T.MeshStandardMaterial({ map: X.grass, color: 0x79bd57, roughness: .95 }), 0, 0, 2.5 * TS, ground, false); grass.rotation.x = -Math.PI / 2;
   const sand = gk.add(new T.PlaneGeometry(size, 2 * TS + .6), new T.MeshStandardMaterial({ map: X.sand, color: 0xf1dca0, roughness: 1 }), 0, .005, mz0 + 4 * TS - .3, ground, false); sand.rotation.x = -Math.PI / 2;
@@ -365,18 +375,25 @@ export async function createTown3D(canvas, hooks) {
   { // east extension: grass and Pantai Miami beach either side of the river mouth
     const plane = (x0, z0, x1, z1, m, y) => { const g = gk.add(new T.PlaneGeometry(x1 - x0, z1 - z0), m, (x0 + x1) / 2, y, (z0 + z1) / 2, ground, false); g.rotation.x = -Math.PI / 2; return g; };
     const gm = new T.MeshStandardMaterial({ map: X.grass, color: 0x79bd57, roughness: .95 }), sm = new T.MeshStandardMaterial({ map: X.sand, color: 0xf3e2ae, roughness: 1 });
-    plane(30, -11, RIVER.x0, 30, gm, 0); plane(RIVER.x1, -11, 80, 30, gm, 0);
-    plane(30, -24.3, RIVER.x0, -11, sm, .005); plane(RIVER.x1, -24.3, 80, -11, sm, .005);
-    plane(30, -24.45, RIVER.x0, -24.1, new T.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: .75 }), .01); plane(RIVER.x1, -24.45, 80, -24.1, new T.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: .75 }), .01);
-    // Bandar Baru: new land south of the kampung (z 30..69) with a sandy south shore
-    plane(-30, 30, 80, 69, gm, 0); plane(-30, 69, 80, 72.5, sm, .005);
+    const fm = new T.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: .75 });
+    plane(30, -11, RIVER.x0, 30, gm, 0); plane(RIVER.x1, -11, EAST, 30, gm, 0);
+    plane(30, -24.3, RIVER.x0, -11, sm, .005); plane(RIVER.x1, -24.3, EAST, -11, sm, .005);
+    plane(30, -24.45, RIVER.x0, -24.1, fm, .01); plane(RIVER.x1, -24.45, EAST, -24.1, fm, .01);
+    // walkable margin west of the kampung (low-poly: plain planes, nothing placed on it)
+    plane(WEST, -20, -30, 30, gm, 0); plane(WEST, -24.3, -30, -20, sm, .005); plane(WEST, -24.45, -30, -24.1, fm, .01);
+    // Bandar Baru: new land south of the kampung (z 30..79, margin past the drag strip) with a sandy south shore
+    plane(WEST, 30, EAST, 79, gm, 0); plane(WEST, 79, EAST, 82.5, sm, .005);
     const roadW = (x0, z0, x1, z1) => { const m = gk.add(new T.PlaneGeometry(x1 - x0, z1 - z0), asph, (x0 + x1) / 2, .021, (z0 + z1) / 2, ground, false); m.rotation.x = -Math.PI / 2; return m; };
     roadW(-2, 30, 2, 44); roadW(-30, 44, 80, 48); roadW(38, 6, 42, 44); roadW(30.5, 48, 33.5, 61.5); roadW(6, 48, 9, 49.4); roadW(27, 48, 30, 49.4);
     const dash = new T.MeshBasicMaterial({ color: 0xffffff }); for (let x = -28; x < 80; x += 3) { const d = gk.add(new T.PlaneGeometry(1.4, .14), dash, x, .025, 46, ground, false); d.rotation.x = -Math.PI / 2; }
     const lot = gk.add(new T.PlaneGeometry(24, 10.5), new T.MeshStandardMaterial({ color: 0x55585e, roughness: .95 }), 18, .018, 54.5, ground, false); lot.rotation.x = -Math.PI / 2;
     for (let x = 7; x <= 29; x += 2.75) for (const z0 of [51.6, 57.4]) { const l = gk.add(new T.PlaneGeometry(.1, 3.2), dash, x, .024, z0, ground, false); l.rotation.x = -Math.PI / 2; }
     const plaza = gk.add(new T.PlaneGeometry(26, 2.4), new T.MeshStandardMaterial({ color: 0xd8cfc0, roughness: .9 }), 18, .022, 42.8, ground, false); plaza.rotation.x = -Math.PI / 2;
-    road(30, 16, 36, 18); road(34, 10, 36, 16); road(34, 10, 38.5, 11.5); road(49.75, 10, 54, 11.5);
+    road(30, 16, 36, 18); road(34, 10, 36, 16); roadW(31, -10, BX - 11.5, -7); roadW(BX + 11.5, -10, EAST, -7); // coast road to the bridge ramps
+    // plank paths from the coast road to each zone (beach zones north of it, pasar and futsal south)
+    const plank = new T.MeshStandardMaterial({ map: X.planks, color: 0xc9a27a, roughness: .9 });
+    for (const [id, b] of Object.entries(BEACH)) { if (id === 'sign' || id.startsWith('um')) continue;
+      const [z0, z1] = b.z < -10 ? [b.z + b.d / 2, -10] : [-7, b.z - b.d / 2]; if (z1 > z0) plane(b.x - .6, z0, b.x + .6, z1, plank, .023); }
     for (const x of [RIVER.x0 - .15, RIVER.x1 + .15]) gk.box(.4, .5, 54, new T.MeshStandardMaterial({ color: 0x8d8a82, roughness: 1 }), x, .05, 3, ground, false); // river walls
   }
   const lineM = new T.MeshBasicMaterial({ color: 0xf5f5f0 });
@@ -505,9 +522,9 @@ export async function createTown3D(canvas, hooks) {
       [x, z] = W(21.6, 9.4); for (let k = 0; k < 3; k++) putModel(M, 'crate', root, x + (k % 2) * .5, z + k * .4, { h: .45, ry: k }); }
     const occ = (i, j) => (i >= 13.5 && i < 16.5) || (j >= 15.5 && j < 18.5 && i >= 3) || [[6, 7, 14, 15.5], [9, 19, 14, 27], [21, 23, 27, 30], [2, 8, 7, 16], [16, 4, 30, 15], [17, 18, 22, 23], [23, 18, 29, 22], [2, 19, 10, 30], [8, 0, 13, 5], [16, 4.5, 24.5, 9.2], [12, 5, 14, 8], [25, 10, 30, 15], [16, 24, 21, 29], [26, 21, 30, 25], [22, 18, 27, 19.5], [0, 15.5, 3, 19]].some(([a, b, c, d]) => i >= a && i < c && j >= b && j < d);
     for (let i = 0; i < N; i += 1) for (let j = 3; j < N; j += 1) {
-      if (occ(i, j)) continue; const v = r(), [x, z] = W(i + .5, j + .5), jx = (r() - .5) * 1.2, jz = (r() - .5) * 1.2;
+      if (occ(i, j) || inZone(...W(i + .5, j + .5), 2)) continue; const v = r(), [x, z] = W(i + .5, j + .5), jx = (r() - .5) * 1.2, jz = (r() - .5) * 1.2;
       const P = (key, o) => putModel(M, key, root, x + jx, z + jz, { ry: r() * 6.3, ...o });
-      if (j < 5) { if (v < .45) { if (!P('palm' + (1 + Math.floor(r() * 4)), { h: 5.5 + r() * 2.5 })) palm(K, x + jx, z + jz, .9 + r() * .4, r); } else if (v < .55) P('rock' + (1 + Math.floor(r() * 2)), { h: .5 + r() * .4 }); }
+      if (j < 5) { if (v < .2) { if (!P('palm' + (1 + Math.floor(r() * 4)), { h: 4 + r() * 1.5 })) palm(K, x + jx, z + jz, .75 + r() * .2, r); } else if (v < .3) P('rock' + (1 + Math.floor(r() * 2)), { h: .5 + r() * .4 }); }
       else if (v < .06) { if (!P('palm' + (1 + Math.floor(r() * 4)), { h: 5.5 + r() * 2.5 })) palm(K, x + jx, z + jz, .9 + r() * .4, r); }
       else if (v < .11) { if (!P(['tree1', 'tree2', 'tree4', 'ktree', 'ftree1', 'ftree2', 'ftree3', 'ftree4'][Math.floor(r() * 8)], { h: 3.6 + r() * 1.8 })) roundTree(K, x + jx, z + jz, .8 + r() * .35, r, r() > .6); }
       else if (v < .2) { if (!P(['bush1', 'berry1', 'plant5', 'fbush1', 'fbush2', 'fbush3', 'fbush4', 'fbush5'][Math.floor(r() * 8)], { h: .8 + r() * .5 })) bush(K, x + jx, z + jz, r); }
@@ -519,10 +536,10 @@ export async function createTown3D(canvas, hooks) {
     { const cream = K.vc(0xf1ead9), gold = K.vc(0xd4a437), teal = K.vc(0x2c8c99), glass = towerGlass, deckM = K.vc(0xd9d3c4), asp = K.vc(0x4f5359), pierM = K.vc(0xb9b4a8);
       const g = K.group(0, 0, 0, root), z = BR.z, y = BR.y, hw = BR.w / 2;
       const ramp = (x0, x1, y0, y1) => { const L = Math.hypot(x1 - x0, y1 - y0), a = Math.atan2(y1 - y0, x1 - x0); for (const [m, h, w, dy] of [[deckM, .35, BR.w + .4, -.2], [asp, .06, BR.w, 0]]) { const b = K.box(L, h, w, m, (x0 + x1) / 2, (y0 + y1) / 2 + dy, z, g); b.rotation.z = a; } };
-      ramp(46.5, 53, 0, y); ramp(53, 56.6, y, y); ramp(59.4, 63, y, y); ramp(63, 69.5, y, 0);
-      for (const [x0, x1] of [[53, 56.6], [59.4, 63]]) for (const zz of [z - hw - .15, z + hw + .15]) K.box(x1 - x0, .5, .08, K.vc(0xe9e4d6), (x0 + x1) / 2, y + .3, zz, g);
-      for (let x = 48; x <= 68; x += 2.5) if (x < 56.4 || x > 59.6) K.cyl(.35, .4, y + .6, pierM, x, (y - .6) / 2, z, g, 10);
-      for (const tx of [55.6, 60.4]) {
+      ramp(BX - 11.5, BX - 5, 0, y); ramp(BX - 5, BX - 1.4, y, y); ramp(BX + 1.4, BX + 5, y, y); ramp(BX + 5, BX + 11.5, y, 0);
+      for (const [x0, x1] of [[BX - 5, BX - 1.4], [BX + 1.4, BX + 5]]) for (const zz of [z - hw - .15, z + hw + .15]) K.box(x1 - x0, .5, .08, K.vc(0xe9e4d6), (x0 + x1) / 2, y + .3, zz, g);
+      for (let x = BX - 10; x <= BX + 10; x += 2.5) if (x < BX - 1.6 || x > BX + 1.6) K.cyl(.35, .4, y + .6, pierM, x, (y - .6) / 2, z, g, 10);
+      for (const tx of [BX - 2.4, BX + 2.4]) {
         K.box(2.2, .8, BR.w + 3.8, pierM, tx, .2, z, g); // pier
         for (const sz of [-1, 1]) { const zz = z + sz * (hw + .95);
           K.box(1.5, 12, 1.5, cream, tx, 6, zz, g); K.box(1.56, 11, .02, glass, tx, 6.4, zz + .76, g, false); K.box(1.56, 11, .02, glass, tx, 6.4, zz - .76, g, false); K.box(.02, 11, 1.56, glass, tx + .76, 6.4, zz, g, false); K.box(.02, 11, 1.56, glass, tx - .76, 6.4, zz, g, false);
@@ -532,19 +549,22 @@ export async function createTown3D(canvas, hooks) {
         K.box(1.1, 1, BR.w + 2.2, glass, tx, 10.8, z, g); K.box(1.2, .14, BR.w + 2.3, gold, tx, 10.25, z, g); K.box(1.2, .14, BR.w + 2.3, gold, tx, 11.35, z, g); // skybridge
       }
       place('jambatan', 'Jambatan Angkat', g); }
-    // ---- Pantai Miami: beach, wakaf, umbrellas, sign, keropok lekor stall, palms; city towers across the river
-    { const [sx, sz] = W(36.5, 7.2); place('lekor', 'Keropok Lekor Kak Long', warung(K, X, sx, sz, M)); }
-    for (let k = 0; k < 9; k++) { const x = 31.5 + k * 2.6 + (r() - .5), z = -12.2 - r() * 1.4; if ((x > 34.5 && x < 38.5) || (x > 39.5 && x < 47)) continue; if (!putModel(M, 'palm' + (1 + k % 4), root, x, z, { h: 6 + r() * 2.5, ry: r() * 6 })) palm(K, x, z, 1, r); }
-    for (const [x, z] of [[33, -15.5], [37.5, -16.2], [52.8, -18]]) { const wk = K.group(x, 0, z, root); for (const [px, pz] of [[-1.1, -1.1], [1.1, -1.1], [-1.1, 1.1], [1.1, 1.1]]) K.cyl(.09, .09, 2.1, K.vc(0x7a4a2a), px, 1.05, pz, wk, 6); K.box(2.6, .12, 2.6, K.vc(0x9a6b44), 0, .5, 0, wk); const rf = K.add(new T.ConeGeometry(2.3, 1.2, 4), K.vc(0x9d3b2c), 0, 2.6, 0, wk); rf.rotation.y = Math.PI / 4; }
-    for (let k = 0; k < 7; k++) { const x = [32, 35, 38, 50.5, 53.5, 33.5, 36.5][k] + (r() - .5), z = k > 4 ? -22.5 : -19 - r() * 2.5, col = [0xe74c3c, 0xf1c40f, 0x2e86de, 0x27ae60, 0xff7a1a, 0x9b59b6, 0xecf0f1][k];
-      K.cyl(.04, .04, 1.9, K.vc(0xdddddd), x, .95, z, root, 6); const um = K.add(new T.ConeGeometry(1.1, .45, 8), K.vc(col), x, 2, z, root); um.castShadow = true;
-      const tw = K.box(.6, .04, 1.4, K.vc([0xffffff, 0xe8a0a8, 0x8fb4e3][k % 3]), x + .9, .03, z + .2, root, false); tw.rotation.y = r(); }
-    { const sg = new T.Group(); sg.position.set(36.6, 0, -12.6); sg.rotation.y = Math.PI / 4; root.add(sg);
-      const c = document.createElement('canvas'); c.width = 512; c.height = 128; const x = c.getContext('2d'); x.fillStyle = '#ffffff'; x.font = '900 92px system-ui'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.strokeStyle = '#1f6f9c'; x.lineWidth = 14; x.strokeText('PANTAI MIAMI', 256, 66); x.fillText('PANTAI MIAMI', 256, 66);
+    // ---- Pantai Miami: zones from BEACH (keropok lekor stall, umbrellas, wakaf, sign, volley, photo booth), palms at the back and ends
+    { const B = BEACH; place('lekor', 'Keropok Lekor Kak Long', warung(K, X, B.lekor.x, B.lekor.z, M));
+      // palms only on the back row (by the water) and the two ends, never in front of a zone; shorter than before
+      for (let x = 31; x <= 99; x += 4.5) { const px = x + (r() - .5), pz = -23.6 + (r() - .5) * .4; if (inZone(px, pz, 1.8)) continue; if (!putModel(M, 'palm' + (1 + Math.round(x) % 4), root, px, pz, { h: 4.5 + r() * 1.5, ry: r() * 6 })) palm(K, px, pz, .85, r); }
+      for (const [px, pz] of [[30.8, -21.5], [99.5, -21.5]]) if (!putModel(M, 'palm' + (1 + Math.round(pz) % 4), root, px, pz, { h: 4.5 + r(), ry: r() * 6 })) palm(K, px, pz, .85, r);
+      { const wk = K.group(B.wakaf.x, 0, B.wakaf.z, root); for (const [px, pz] of [[-1.1, -1.1], [1.1, -1.1], [-1.1, 1.1], [1.1, 1.1]]) K.cyl(.09, .09, 2.1, K.vc(0x7a4a2a), px, 1.05, pz, wk, 6); K.box(2.6, .12, 2.6, K.vc(0x9a6b44), 0, .5, 0, wk); const rf = K.add(new T.ConeGeometry(2.3, 1.2, 4), K.vc(0x9d3b2c), 0, 2.6, 0, wk); rf.rotation.y = Math.PI / 4; }
+      // umbrellas + towels in two small clusters by the water, away from the plank paths
+      for (const [u, cols] of [[B.um1, [0xe74c3c, 0xf1c40f, 0x2e86de]], [B.um2, [0x27ae60, 0xff7a1a, 0x9b59b6]]]) for (let k = 0; k < 3; k++) { const x = u.x - 1.1 + k * 1.1, z = u.z + (k === 1 ? -.6 : .5);
+        K.cyl(.04, .04, 1.9, K.vc(0xdddddd), x, .95, z, root, 6); const um = K.add(new T.ConeGeometry(.75, .35, 8), K.vc(cols[k]), x, 2, z, root); um.castShadow = true;
+        const tw = K.box(.5, .04, 1.1, K.vc([0xffffff, 0xe8a0a8, 0x8fb4e3][k]), x + .35, .03, z + .25, root, false); tw.rotation.y = .3 * (k - 1); } }
+    { const sg = new T.Group(); sg.position.set(BEACH.sign.x, 0, BEACH.sign.z); sg.rotation.y = Math.PI / 4; root.add(sg);
+      const c = document.createElement('canvas'); c.width = 512; c.height = 128; const x = c.getContext('2d'); x.fillStyle = '#ffffff'; let fs = 92; do x.font = `900 ${fs}px system-ui`; while (x.measureText('PANTAI MIAMI').width > 470 && (fs -= 4) > 24); x.textAlign = 'center'; x.textBaseline = 'middle'; x.strokeStyle = '#1f6f9c'; x.lineWidth = 12; x.strokeText('PANTAI MIAMI', 256, 66); // fit: it was wider than the canvas and got clipped x.fillText('PANTAI MIAMI', 256, 66);
       const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; const m = new T.Mesh(new T.PlaneGeometry(6, 1.5), new T.MeshBasicMaterial({ map: t, transparent: true, side: T.DoubleSide })); m.position.y = 1.4; m.userData.noBake = true; sg.add(m);
       for (const px of [-2.6, 2.6]) K.box(.12, 1.2, .12, K.vc(0x555555), px, .6, 0, sg); }
     // ---- activities: night market, futsal court, drag strip, beach volleyball, photo booth
-    { const g = K.group(34.2, 0, -2.6, root); const cols = [0xc0392b, 0x2e86de, 0x27ae60, 0xf39c12];
+    { const g = K.group(BEACH.pasar.x, 0, BEACH.pasar.z, root); const cols = [0xc0392b, 0x2e86de, 0x27ae60, 0xf39c12];
       K.box(6.4, .03, 6.6, K.vc(0x55565c), 0, .03, 0, g, false);
       for (let k = 0; k < 4; k++) { const sx = -2.2 + (k % 2) * 4.4 * .5 * 2 - (k % 2) * 2.2, sz = -2 + Math.floor(k / 2) * 4; const s2 = K.group(k % 2 ? 1.6 : -1.6, 0, sz, g);
         for (const [px, pz] of [[-1, -.7], [1, -.7], [-1, .7], [1, .7]]) K.cyl(.04, .04, 2, K.vc(0xdddddd), px, 1, pz, s2, 6);
@@ -552,7 +572,7 @@ export async function createTown3D(canvas, hooks) {
         for (let i = 0; i < 3; i++) K.box(.3, .2, .3, K.vc([0xe67e22, 0xf1c40f, 0xe74c3c][i]), -.6 + i * .6, .85, .5, s2); }
       for (let i = 0; i < 16; i++) K.ball(.07, glowMat, -3 + i * .4, 2.6 + Math.sin(i / 15 * Math.PI) * -.3, 0, g);
       const sg = K.box(3.2, .6, .1, K.vc(0x8e44ad), 0, 3.1, 0, g); place('pasar', 'Pasar Malam', g); }
-    { const g = K.group(48.5, 0, -2, root); K.box(10, .06, 6.2, K.vc(0x2c6fb0), 0, .04, 0, g, false); K.box(10.6, .05, 6.8, K.vc(0xe67e22), 0, .02, 0, g, false);
+    { const g = K.group(BEACH.futsal.x, 0, BEACH.futsal.z, root); K.box(10, .06, 6.2, K.vc(0x2c6fb0), 0, .04, 0, g, false); K.box(10.6, .05, 6.8, K.vc(0xe67e22), 0, .02, 0, g, false);
       K.box(.06, .01, 6.2, K.vc(0xffffff), 0, .075, 0, g, false); for (const sx of [-1, 1]) { K.box(.06, .01, 6.2, K.vc(0xffffff), sx * 4.98, .075, 0, g, false); K.box(.25, 1, 1.6, K.vc(0xffffff), sx * 5.05, .5, 0, g); }
       for (const sx of [-1, 1]) for (const zz of [-3.4, 3.4]) K.box(10.6, 1.2, .05, K.vc(0x7f8c8d), 0, .6, zz, g, false);
       for (const [x, z] of [[-5.4, -3.4], [5.4, -3.4], [-5.4, 3.4], [5.4, 3.4]]) { K.cyl(.08, .08, 5, K.vc(0x95a5a6), x, 2.5, z, g, 6); K.box(.8, .2, .4, glowMat, x, 5, z, g); }
@@ -565,10 +585,11 @@ export async function createTown3D(canvas, hooks) {
       if (!putModel(M, 'hatch', g, -9.5, -1.2, { len: 3.4, ry: -Math.PI / 2, tint: 0xf1c40f })) K.box(3, 1, 1.5, K.vc(0xf1c40f), -9.5, .5, -1.2, g);
       if (!putModel(M, 'sedan', g, -9.5, 1.2, { len: 3.4, ry: -Math.PI / 2, tint: 0xc0392b })) K.box(3, 1, 1.5, K.vc(0xc0392b), -9.5, .5, 1.2, g);
       place('drag', 'Litar Drag 402m', g); }
-    { const g = K.group(44, 0, -21, root); const tape = K.vc(0x1f6fd1); for (const zz of [-2.5, 2.5]) K.box(8, .02, .08, tape, 0, .03, zz, g, false); for (const xx of [-4, 4]) K.box(.08, .02, 5, tape, xx, .03, 0, g, false);
+    { const g = K.group(BEACH.volley.x, 0, BEACH.volley.z, root); const tape = K.vc(0x1f6fd1); for (const zz of [-2.5, 2.5]) K.box(8, .02, .08, tape, 0, .03, zz, g, false); for (const xx of [-4, 4]) K.box(.08, .02, 5, tape, xx, .03, 0, g, false);
       for (const zz of [-2.9, 2.9]) K.cyl(.05, .05, 2.4, K.vc(0xdddddd), 0, 1.2, zz, g, 6); K.box(.04, .8, 5.8, K.vc(0x222222), 0, 1.9, 0, g); K.box(.05, .08, 5.8, K.vc(0xffffff), 0, 2.3, 0, g);
       K.ball(.16, K.vc(0xffd452), -1.8, .16, .6, g); place('volley', 'Bola Tampar Pantai', g); }
-    { const g = K.group(51.6, 0, -13.2, root); g.rotation.y = -Math.PI / 2; const fr = K.vc(0xd35400);
+    // photo booth: rotated, so its footprint runs x -2.3..+.2 from the group (BEACH.photo is the footprint centre)
+    { const g = K.group(BEACH.photo.x + 1.05, 0, BEACH.photo.z, root); g.rotation.y = -Math.PI / 2; const fr = K.vc(0xd35400);
       for (const sx of [-1.1, 1.1]) K.box(.2, 2.6, .2, fr, sx, 1.3, 0, g); K.box(2.6, .45, .22, fr, 0, 2.7, 0, g); K.box(2.2, .06, 1.2, K.vc(0xf3eee2), 0, .03, .6, g, false);
       K.cyl(.03, .03, 1.4, K.vc(0x222222), 0, .7, 2.2, g, 6); K.box(.3, .2, .2, K.vc(0x111111), 0, 1.5, 2.2, g);
       place('photo', 'Booth Foto Jambatan Angkat', g); }
@@ -623,7 +644,6 @@ export async function createTown3D(canvas, hooks) {
       for (const [x, z, ry] of [[2.6, 43.4, 0], [-2.6, 48.6, Math.PI], [42.6, 43.4, 0], [37.4, 48.6, Math.PI]]) P('city/TrafficLight', x, z, { h: 3.6, ry });
       for (let x = -26; x < 80; x += 9) if (x < -4 || x > 34) P('city/Tree', x, 49.2, { h: 2.6 }); place('kedai_bandar', 'Deretan Kedai Bandar Baru', K.group(70, 3, 38, root)); }
     for (const [x, z, h, w] of [[66, 2, 9, 4], [71, 8, 13, 4.5], [65.5, 14, 7, 5], [72, 20, 11, 4], [66.5, 24, 6, 5], [73, -2, 8, 3.5]]) { const b = K.box(w, h, w, cityGlass, x, h / 2, z, root); b.userData.glowTex = true; K.box(w + .2, .3, w + .2, K.vc(0x8d99a6), x, h + .15, z, root); }
-    for (let k = 0; k < 6; k++) { const x = 63 + r() * 14, z = -13 - r() * 9; if (!putModel(M, 'palm' + (1 + k % 4), root, x, z, { h: 6 + r() * 2, ry: r() * 6 })) palm(K, x, z, 1, r); }
     baked = bake(root, scene);
     for (const id of Object.keys(YARDS)) buildYard(id, flags.yardsCut.includes(id));
   }
@@ -679,7 +699,7 @@ export async function createTown3D(canvas, hooks) {
   const plane = putModel(M, 'airliner', scene, 0, -500, { len: 20, y: 38 }); let planeT = 12, planeF = -1;
   // drawbridge leaves (animated), a boat that sails under when it opens, and wau kites over Pantai Miami
   const leafM = new T.MeshStandardMaterial({ color: 0xd9d3c4, roughness: .8 }), leafRoad = new T.MeshStandardMaterial({ color: 0x4f5359, roughness: .9 });
-  const leaves = [[56.6, 1], [59.4, -1]].map(([hx, dir]) => { const p = new T.Group(); p.position.set(hx, BR.y, BR.z); scene.add(p);
+  const leaves = [[BX - 1.4, 1], [BX + 1.4, -1]].map(([hx, dir]) => { const p = new T.Group(); p.position.set(hx, BR.y, BR.z); scene.add(p);
     const a = new T.Mesh(new T.BoxGeometry(1.4, .35, BR.w + .4), leafM); a.position.set(dir * .7, -.2, 0); a.castShadow = true; p.add(a);
     const b = new T.Mesh(new T.BoxGeometry(1.4, .06, BR.w), leafRoad); b.position.set(dir * .7, 0, 0); p.add(b);
     for (const zz of [-BR.w / 2 - .15, BR.w / 2 + .15]) { const rl = new T.Mesh(new T.BoxGeometry(1.4, .5, .08), leafM); rl.position.set(dir * .7, .3, zz); p.add(rl); }
@@ -720,7 +740,7 @@ export async function createTown3D(canvas, hooks) {
     cam.position.copy(target).addScaledVector(ISO, 120); cam.lookAt(target);
     sun.position.copy(target).add(new T.Vector3(-25, 50, 18)); sun.target.position.copy(target);
   }
-  const clampT = () => { target.x = clamp(target.x, -30, 74); target.z = clamp(target.z, -30, 70); zoom = clamp(zoom, .45, 2.6); };
+  const clampT = () => { target.x = clamp(target.x, WEST + 2, EAST - 8); target.z = clamp(target.z, -30, 80); zoom = clamp(zoom, .45, 2.6); };
   const right = new T.Vector3(1, 0, -1).normalize(), fwd = new T.Vector3(-1, 0, -1).normalize(), pitch = Math.asin(ISO.y);
   function panBy(dx, dy) { const wpp = VIEW_H / zoom / ch; target.addScaledVector(right, -dx * wpp).addScaledVector(fwd, dy * wpp / Math.sin(pitch)); clampT(); }
   const pointers = new Map(); let pinch = null, downInfo = null;
@@ -808,7 +828,7 @@ export async function createTown3D(canvas, hooks) {
     // drawbridge cycle: open, a boat sails under, close (also on demand for the story)
     if (bridge.st === 'down' && (bridge.t -= dt) <= 0) bridge.st = 'opening';
     if (bridge.st === 'opening') { bridge.k = Math.min(1, bridge.k + dt / 3.5); if (bridge.k >= 1) { bridge.st = 'open'; bridge.boatZ = -34; if (riverBoat) riverBoat.visible = true; } }
-    else if (bridge.st === 'open') { bridge.boatZ += dt * 6.5; if (riverBoat) riverBoat.position.set(58, -.6, bridge.boatZ); if (bridge.boatZ > 22) { bridge.st = 'closing'; if (riverBoat) riverBoat.visible = false; if (bridge.cb) { const c = bridge.cb; bridge.cb = null; c(); } } }
+    else if (bridge.st === 'open') { bridge.boatZ += dt * 6.5; if (riverBoat) riverBoat.position.set(BX, -.6, bridge.boatZ); if (bridge.boatZ > 22) { bridge.st = 'closing'; if (riverBoat) riverBoat.visible = false; if (bridge.cb) { const c = bridge.cb; bridge.cb = null; c(); } } }
     else if (bridge.st === 'closing') { bridge.k = Math.max(0, bridge.k - dt / 3.5); if (bridge.k <= 0) { bridge.st = 'down'; bridge.t = bridge.cb ? 0 : 80; } }
     for (const l of leaves) l.p.rotation.z = l.dir * bridge.k * 1.2;
     updateLife(dt); updateFw(dt);
@@ -855,6 +875,7 @@ export async function createTown3D(canvas, hooks) {
   return {
     rebuild, frame, focus, anchor, timeOfDay, is3D: true, openBridge, fireworks, bridgeState: () => bridge.st,
     npcModel: (id) => !!(npcs[id] && npcs[id].model), // true once a detailed model replaced the simple figure
+    scene, // read-only: used by layout checks (what stands near the bridge, what hides a zone)
     zoomBy(f) { zoom *= f; clampT(); goal = null; },
     cam: view,
     hide(v) { canvas.style.visibility = v ? 'hidden' : 'visible'; layer.style.visibility = v ? 'hidden' : 'visible'; },

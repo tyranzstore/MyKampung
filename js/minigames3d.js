@@ -1400,7 +1400,7 @@ function Beach3D(K, api, opts, M = {}) {
   const shore = shoreWaves(T, scene, { segs: [[-40, 40]], shoreZ: -11.6, seaward: -1, reach: 5, period: 6, width: 1.6, n: 4 });
   const foam = K.mesh(new T.PlaneGeometry(80, .7), new T.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: .8 }), 0, .03, -12, scene, false); foam.rotation.x = -Math.PI / 2;
   // Jambatan Angkat on the horizon: four towers, skybridges, raised bascule leaves
-  const br = K.group(26, 0, -46, scene); br.rotation.y = -.5; const cream = K.mat(0xf1ead9), teal = K.mat(0x2c8c99), gold = K.mat(0xd4a437);
+  const br = K.group(40, 0, -72, scene); br.rotation.y = -.5; br.scale.setScalar(1.15); // far along the coast, as in the village const cream = K.mat(0xf1ead9), teal = K.mat(0x2c8c99), gold = K.mat(0xd4a437);
   for (const tx of [-3.2, 3.2]) { for (const tz of [-2.4, 2.4]) { K.box(1.8, 15, 1.8, cream, tx, 7.5, tz, br); const rf = K.mesh(new T.ConeGeometry(1.5, 2.8, 4), teal, tx, 16.4, tz, br); rf.rotation.y = Math.PI / 4; K.box(1.9, .2, 1.9, gold, tx, 10, tz, br); } K.box(1.3, 1.3, 4.8, K.mat(0x4f88a8), tx, 12.8, 0, br); }
   K.box(30, .5, 3.6, K.mat(0xd9d3c4), -19, 2, 0, br); K.box(30, .5, 3.6, K.mat(0xd9d3c4), 19, 2, 0, br);
   for (const [x, d] of [[-2.4, 1], [2.4, -1]]) { const leaf = K.box(2.6, .4, 3.4, K.mat(0xd9d3c4), x + d * 1.1, 2.9, 0, br); leaf.rotation.z = d * .9; }
@@ -1500,7 +1500,7 @@ function Volley3D(K, api, opts, M = {}) {
   for (const x of [-4.6, 4.6]) K.cyl(.06, .06, 2.6, K.mat(0xdddddd), x, 1.3, 0, scene, 10);
   const netT = K.canvasTex(512, 64); netT.x.fillStyle = 'rgba(0,0,0,0)'; netT.x.clearRect(0, 0, 512, 64); netT.x.strokeStyle = '#222'; netT.x.lineWidth = 2; for (let k = 0; k <= 512; k += 10) { netT.x.beginPath(); netT.x.moveTo(k, 0); netT.x.lineTo(k, 64); netT.x.stroke(); } for (let k = 0; k <= 64; k += 10) { netT.x.beginPath(); netT.x.moveTo(0, k); netT.x.lineTo(512, k); netT.x.stroke(); } netT.x.fillStyle = '#1f6fd1'; netT.x.fillRect(0, 0, 512, 8); netT.t.needsUpdate = true;
   K.mesh(new T.PlaneGeometry(9.2, .9), new T.MeshBasicMaterial({ map: netT.t, transparent: true, side: T.DoubleSide, alphaTest: .2 }), 0, 1.98, 0, scene, false);
-  const bf = bridgeFar(K, scene, 34, -58, -.6, 1.1);
+  const bf = bridgeFar(K, scene, 50, -84, -.6, 1.3); // farther: the town bridge now stands far from the beach
   for (let k = 0; k < 9; k++) palm(K, scene, -22 + k * 5.5 + (r() - .5) * 2, 18 + r() * 5, 1.1 + r() * .3, r);
   for (const [x, z] of [[-9, -6], [10, 4]]) { K.cyl(.05, .05, 2.2, K.mat(0xdddddd), x, 1.1, z, scene, 6); K.mesh(new T.ConeGeometry(1.5, .6, 10), K.mat(x < 0 ? 0xe74c3c : 0xf1c40f), x, 2.25, z, scene); }
   const opp = makeAthlete(K, { shirt: 0xc0392b, pants: 0x1c1c1c, skin: 0x8d5a34, hair: 0x111111, num: '7' }); opp.g.rotation.y = 0; scene.add(opp.g);
@@ -1541,7 +1541,7 @@ function Photo3D(K, api, opts, M = {}) {
   K.mesh(new T.BoxGeometry(60, .2, 30), new T.MeshStandardMaterial({ color: 0xefdcaa, roughness: 1 }), 0, -.1, 6, scene, false);
   const ocean = makeOcean(T, { w: 300, h: 200, seg: .45, amp: .3, shoreY: -95, shoreFade: 14, deep: 0x0b4f78, shallow: 0x35b6cf, repeat: 30 }); ocean.mesh.position.set(0, -.06, -104); scene.add(ocean.mesh);
   const shore = shoreWaves(T, scene, { segs: [[-30, 30]], shoreZ: -8.8, seaward: -1, reach: 4, period: 6.5, width: 1.4 });
-  const bf = bridgeFar(K, scene, 6, -42, -.15, 1.25);
+  const bf = bridgeFar(K, scene, 9, -52, -.15, 1.5); // farther and larger: same framing, more distance
   const city = []; for (let k = 0; k < 8; k++) { const h = 6 + r() * 10; city.push(K.box(4, h, 4, new T.MeshStandardMaterial({ color: 0xd8d4cc, emissive: 0xffd88a, emissiveIntensity: 0 }), 26 + k * 5, h / 2, -70 - r() * 10, scene, false)); }
   for (let k = 0; k < 5; k++) palm(K, scene, -16 + k * 3 + r(), -4 - r() * 3, 1.1, r);
   // the booth arch around the player (seen as a frame at the edge of the photo)
