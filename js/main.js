@@ -6,6 +6,7 @@ import { runGame3D, has3D } from './minigames3d.js';
 import { ACTIVITIES } from './activities.js';
 import { earn, fmtRM, balance } from './wallet.js';
 import { runKaraoke } from './karaoke.js';
+import * as online from './online.js';
 
 const TOWN = 'Kampung Seri Damai';
 checkDaily();
@@ -550,7 +551,7 @@ $('muteBtn').textContent = S.muted ? '🔇' : '🔊';
 $('fsBtn').onclick = () => { try { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen().catch(() => {}); } catch {} };
 $('menuBtn').onclick = async () => {
   sfx.tap();
-  const v = await modal({ kicker: 'MENU', title: 'MyKampung', html: `<p class="muted">Gelaran · Title: <b>${rank()}</b> · ⭐ ${S.stars} · 💵 ${fmtRM(balance())}</p>`, buttons: [['Cara main · How to play', 'help'], ['🎉 Aktiviti · Activities', 'acts'], ['Latihan mini game · Practice', 'practice'], [S.timeMode === 'day' ? 'Masa: sentiasa siang' : 'Masa: ikut jam sebenar', 'time'], ['🐟 Buku Ikan · Fish book', 'fishbook'], [S.music === false ? '🎵 Muzik: tutup → buka' : '🎵 Muzik: buka → tutup', 'music'], [S.gfx === '2d' ? 'Grafik: 2D (ringan) → tukar 3D' : 'Grafik: 3D → tukar 2D (ringan)', 'gfx'], ['💾 Simpanan · Save backup', 'savedata'], ['Kredit · Credits', 'credits'], ['Mula semula · Restart', 'reset'], ['Tutup · Close', 'ok', true]] });
+  const v = await modal({ kicker: 'MENU', title: 'MyKampung', html: `<p class="muted">Gelaran · Title: <b>${rank()}</b> · ⭐ ${S.stars} · 💵 ${fmtRM(balance())}</p>`, buttons: [['Cara main · How to play', 'help'], ['🎉 Aktiviti · Activities', 'acts'], ['Latihan mini game · Practice', 'practice'], [S.timeMode === 'day' ? 'Masa: sentiasa siang' : 'Masa: ikut jam sebenar', 'time'], ['🐟 Buku Ikan · Fish book', 'fishbook'], [S.music === false ? '🎵 Muzik: tutup → buka' : '🎵 Muzik: buka → tutup', 'music'], [S.gfx === '2d' ? 'Grafik: 2D (ringan) → tukar 3D' : 'Grafik: 3D → tukar 2D (ringan)', 'gfx'], ['💾 Simpanan · Save backup', 'savedata'], ['🌐 Dalam talian · Online', 'online'], ['Kredit · Credits', 'credits'], ['Mula semula · Restart', 'reset'], ['Tutup · Close', 'ok', true]] });
   if (v === 'help') return howTo();
   if (v === 'music') { setMusic(S.music === false); toast(S.music === false ? 'Muzik ditutup' : 'Muzik dibuka', S.music === false ? 'Music off' : 'Music on'); return; }
   if (v === 'acts') {
@@ -589,6 +590,7 @@ $('menuBtn').onclick = async () => {
   if (v === 'time') { S.timeMode = S.timeMode === 'day' ? 'real' : 'day'; save(); toast(S.timeMode === 'day' ? 'Sentiasa siang' : 'Ikut jam sebenar', S.timeMode === 'day' ? 'Always daytime' : 'Follows your real clock'); return; }
   if (v === 'gfx') { S.gfx = S.gfx === '2d' ? '3d' : '2d'; save(); location.reload(); return; }
   if (v === 'savedata') return saveMenu();
+  if (v === 'online') return onlineMenu();
   if (v === 'reset') { const c = await modal({ title: 'Mula semula?', body: 'Semua kemajuan akan hilang. All progress will be lost.', buttons: [['Ya, padam · Yes, erase', 'yes'], ['Batal · Cancel', 'no', true]] }); if (c === 'yes') { wipe(); location.reload(); } }
 };
 // ------------------------------------------------------------ save backup: export to a file, import from a file
@@ -617,6 +619,64 @@ async function saveMenu() {
   const c = await modal({ kicker: '💾 IMPORT', title: 'Ganti kemajuan?', html: `<p>Fail ini: <b>Bab ${d.chapter}</b> · ⭐ ${d.stars || 0} · ${fmtRM(d.coins)}</p><p>Sekarang: <b>Bab ${S.chapter}</b> · ⭐ ${S.stars} · ${fmtRM(balance())}</p><p class="muted">Kemajuan sekarang akan diganti. · Your current progress will be replaced by this file.</p>`, buttons: [['Ya, import · Yes, import', 'yes'], ['Batal · Cancel', 'no', true]] });
   if (c !== 'yes') return;
   if (importSave(d)) location.reload(); else toast('Import gagal', 'Import failed — storage is full or blocked');
+}
+// ------------------------------------------------------------ online: sign-in, cloud save, rooms (js/online.js)
+const esc = (t) => String(t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+const lsGet = (k) => { try { return localStorage.getItem(k) || ''; } catch { return ''; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch {} };
+const me = () => ({ name: lsGet('mykampung_online_name') || rank(), chapter: S.chapter, stars: S.stars, place: (cur() && targetOf(cur())) || '' });
+let cloudTimer = 0;
+function startCloudSync() { // every 2 min while signed in: upload if the local save changed (server keeps the newer one)
+  if (cloudTimer) return; let last = 0;
+  cloudTimer = setInterval(async () => { if (!S.savedAt || S.savedAt === last || isStale()) return; try { const r = await online.pushCloud(S, { stale: isStale() }); if (r.ok) last = S.savedAt; } catch {} online.updatePresence(me()).catch(() => {}); }, 120000);
+}
+async function onlineMenu() {
+  const K = '🌐 DALAM TALIAN · ONLINE';
+  if (!online.onlineConfigured()) return modal({ kicker: K, title: 'Belum disediakan', body: 'Ciri dalam talian (log masuk, simpanan awan, bilik) belum disambungkan oleh pemilik permainan. Permainan dan simpanan tempatan berfungsi seperti biasa. · Online features are not set up yet. The game and local saves work as usual.', buttons: [['OK', 'ok', true]] });
+  let u = null; try { u = await online.currentUser(); } catch (e) { return toast('Tak dapat sambung', 'Could not reach the online service'); }
+  if (!u) {
+    const v = await modal({ kicker: K, title: 'Log masuk', html: '<p>Masukkan emel. Kami hantar pautan log masuk (tiada kata laluan). <small class="muted">Enter your email and we send a sign-in link (no password).</small></p><input id="olEmail" type="email" autocomplete="email" inputmode="email" maxlength="254" placeholder="nama@contoh.com" style="width:100%;font-size:16px;padding:10px">', buttons: [['Hantar pautan · Send link', 'send', true], ['Batal · Cancel', 'no']] });
+    if (v !== 'send') return;
+    const r = await online.signIn(($('olEmail').value || '').trim()).catch((e) => ({ ok: false, reason: e.message }));
+    return toast(r.ok ? '📧 Semak emel anda' : 'Gagal: ' + (r.reason === 'email' ? 'emel tidak sah' : r.reason), r.ok ? 'Check your email for the sign-in link' : 'Sign-in failed');
+  }
+  startCloudSync();
+  const room = online.roomCode();
+  const v = await modal({ kicker: K, title: 'Akaun · Account', html: `<p class="muted small">${esc(u.email || '')}</p>${room ? `<p>Bilik · Room: <b>${esc(room)}</b></p>` : ''}`,
+    buttons: [['☁️ Simpan ke awan · Upload', 'up', true], ['⬇️ Ambil dari awan · Restore', 'down'], [room ? '👥 Ahli bilik · Room' : '👥 Masuk bilik · Join room', 'room'], ['Log keluar · Sign out', 'out'], ['Tutup · Close', 'ok']] });
+  if (v === 'up') { const r = await online.pushCloud(S, { stale: isStale() }).catch((e) => ({ ok: false, reason: e.message })); return toast(r.ok ? (r.applied ? '☁️ Disimpan ke awan' : '☁️ Awan dah ada simpanan lebih baru') : 'Gagal: ' + r.reason, r.ok ? (r.applied ? 'Saved to the cloud' : 'The cloud already has newer progress') : 'Upload failed'); }
+  if (v === 'down') {
+    const r = await online.pullCloud().catch((e) => ({ ok: false, reason: e.message }));
+    if (!r.ok) return toast('Gagal: ' + r.reason, 'Could not read the cloud save');
+    if (!r.row) return toast('Tiada simpanan awan', 'No cloud save yet');
+    const p = parseSave(JSON.stringify(r.row.data)); if (!p.ok) return toast('Simpanan awan rosak', 'The cloud save is not valid — your progress is unchanged');
+    const d = p.data, plan = online.cloudPlan(S, r.row);
+    const c = await modal({ kicker: K, title: 'Ganti dengan simpanan awan?', html: `<p>Awan · Cloud: <b>Bab ${d.chapter}</b> · ⭐ ${d.stars || 0} · ${fmtRM(d.coins)}</p><p>Sekarang · Now: <b>Bab ${S.chapter}</b> · ⭐ ${S.stars} · ${fmtRM(balance())}</p>${plan === 'upload' ? '<p><b>⚠️ Simpanan di peranti ini lebih baru.</b> <small>This device has newer progress.</small></p>' : ''}<p class="muted small">Simpanan sekarang disimpan di tepi. · Your current save is kept aside.</p>`, buttons: [['Ya, ganti · Yes, replace', 'yes'], ['Batal · Cancel', 'no', true]] });
+    if (c === 'yes') { if (importSave(d)) location.reload(); else toast('Gagal', 'Restore failed — storage is full or blocked'); }
+    return;
+  }
+  if (v === 'room') return roomMenu();
+  if (v === 'out') { await online.signOut().catch(() => {}); clearInterval(cloudTimer); cloudTimer = 0; return toast('Log keluar', 'Signed out'); }
+}
+async function roomMenu() {
+  const K = '👥 BILIK · ROOM';
+  if (!online.roomCode()) {
+    const v = await modal({ kicker: K, title: 'Masuk bilik', html: `<p>Kongsi kod bilik dengan kawan. <small class="muted">Share the room code with friends.</small></p><input id="olRoom" maxlength="8" autocapitalize="characters" placeholder="${online.newRoomCode()}" style="width:100%;font-size:16px;padding:10px;text-transform:uppercase"><input id="olName" maxlength="24" placeholder="Nama paparan · Display name" value="${esc(lsGet('mykampung_online_name'))}" style="width:100%;font-size:16px;padding:10px;margin-top:8px">`, buttons: [['Masuk · Join', 'join', true], ['Batal · Cancel', 'no']] });
+    if (v !== 'join') return;
+    const code = (($('olRoom').value || $('olRoom').placeholder).trim()).toUpperCase(), name = ($('olName').value || '').trim().slice(0, 24);
+    if (name) lsSet('mykampung_online_name', name);
+    const r = await online.joinRoom(code, me(), renderMembers).catch((e) => ({ ok: false, reason: e.message }));
+    if (!r.ok) return toast('Tak dapat masuk bilik: ' + r.reason, 'Could not join the room');
+    toast('👥 Dalam bilik ' + code, 'Joined room ' + code);
+  }
+  const p = modal({ kicker: K, title: 'Bilik ' + online.roomCode(), html: '<ul id="olMembers" class="catchList"><li class="muted">…</li></ul>', buttons: [['Keluar bilik · Leave', 'leave'], ['Tutup · Close', 'ok', true]] });
+  if (roomList) renderMembers(roomList); // the list may have arrived before this pop-up opened
+  const v = await p; if (v === 'leave') { await online.leaveRoom(); roomList = null; toast('Keluar bilik', 'Left the room'); }
+}
+let roomList = null;
+function renderMembers(list) {
+  roomList = list; const ul = $('olMembers'); if (!ul) return; ul.textContent = '';
+  for (const m of list) { const li = document.createElement('li'); li.textContent = `${m.name} · Bab ${m.chapter} · ⭐ ${m.stars}${m.place ? ' · ' + m.place : ''}`; ul.append(li); }
 }
 function howTo() {
   return modal({ kicker: 'CARA MAIN · HOW TO PLAY', title: 'Selamat datang!', html: `<ul class="help">
