@@ -31,8 +31,23 @@ export const MODEL_FILES = {
   'fish_Kembung': 'fish/Ikan_Kembung', 'fish_Selar_Kuning': 'fish/Ikan_Selar_Kuning', 'fish_Cencaru': 'fish/Ikan_Cencaru', 'fish_Selayang': 'fish/Ikan_Selayang', 'fish_Tamban': 'fish/Ikan_Tamban', 'fish_Bilis': 'fish/Ikan_Bilis', 'fish_Tenggiri': 'fish/Ikan_Tenggiri', 'fish_Tongkol': 'fish/Ikan_Tongkol', 'fish_Tuna_Sirip_Kuning': 'fish/Ikan_Tuna_Sirip_Kuning', 'fish_Alu-Alu': 'fish/Ikan_Alu-Alu', 'fish_Kerapu': 'fish/Ikan_Kerapu', 'fish_Kerapu_Bara': 'fish/Ikan_Kerapu_Bara', 'fish_Jenahak': 'fish/Ikan_Jenahak', 'fish_Merah': 'fish/Ikan_Merah', 'fish_Siakap': 'fish/Ikan_Siakap', 'fish_Kerisi': 'fish/Ikan_Kerisi', 'fish_Bawal_Putih': 'fish/Ikan_Bawal_Putih', 'fish_Bawal_Hitam': 'fish/Ikan_Bawal_Hitam', 'fish_Bawal_Emas': 'fish/Ikan_Bawal_Emas', 'fish_Pari': 'fish/Ikan_Pari', 'fish_Senangin': 'fish/Ikan_Senangin', 'fish_Kurau': 'fish/Ikan_Kurau', 'fish_Gelama': 'fish/Ikan_Gelama', 'fish_Gerut-Gerut': 'fish/Ikan_Gerut-Gerut', 'fish_Talang': 'fish/Ikan_Talang', 'fish_Belanak': 'fish/Ikan_Belanak', 'fish_Sebelah': 'fish/Ikan_Sebelah', 'fish_Jebong': 'fish/Ikan_Jebong', 'fish_Dengkis': 'fish/Ikan_Dengkis', 'fish_Biji_Nangka': 'fish/Ikan_Biji_Nangka',
   hammer: 'kaykit/hammer', nail: 'kaykit/nail', bucket: 'kaykit/bucket_metal', shovel: 'kaykit/shovel', saw: 'kaykit/saw', axe: 'kaykit/axe', rope: 'kaykit/rope_bundle_A', lantern: 'kaykit/lantern', trowel: 'kaykit/trowel', plane: 'kaykit/handplane', mallet: 'kaykit/mallet', wrench: 'kaykit/wrench_A',
 };
+// Wrap a loaded glTF the way every model in the game expects: feet on y = 0, centred on x/z, userData.size/anims/skinned,
+// shadows on, shared resources marked. metalFix: glTF default material is fully metallic → black without an env map.
+// scale / rotation (degrees, [x, y, z]) come from a GLB pack manifest and are applied before measuring.
+function normalize(g, { metalFix = false, scale, rotation } = {}) {
+  const inner = g.scene;
+  if (scale) inner.scale.multiplyScalar(scale);
+  if (rotation) inner.rotation.set(...rotation.map((d) => d * Math.PI / 180));
+  if (scale || rotation) inner.updateMatrixWorld(true);
+  const box = new T.Box3().setFromObject(inner), c = box.getCenter(new T.Vector3());
+  inner.position.sub(new T.Vector3(c.x, box.min.y, c.z));
+  const wrap = new T.Group(); wrap.add(inner); wrap.userData.size = box.getSize(new T.Vector3()); wrap.userData.anims = g.animations || []; let sk = false; inner.traverse(o => { if (o.isSkinnedMesh) sk = true; }); wrap.userData.skinned = sk;
+  inner.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; if (metalFix && o.material && o.material.metalness === 1 && !o.material.map) { o.material = o.material.clone(); o.material.metalness = .25; o.material.roughness = .45; } } });
+  markShared(wrap); return wrap;
+}
 let cache = null, skClone = null;
-export function loadModels(onProgress) { if (!cache) cache = loadAll(onProgress); return cache; }
+export function loadModels(onProgress) { if (!cache) cache = loadAll(onProgress).then((M) => (legacy = M)); return cache; }
+let legacy = null; // the legacy model map once loaded (getModel and collision checks read it)
 async function loadAll(onProgress) {
   T = await import('three');
   try { ({ GLTFLoader } = await import('three/addons/loaders/GLTFLoader.js')); } catch { return {}; }
@@ -51,11 +66,7 @@ async function loadAll(onProgress) {
     try {
       const file = MODEL_FILES[k]; if (!pack[file]) throw new Error('missing ' + file);
       const g = await loader.parseAsync(b64(pack[file]), `assets/${file.split('/')[0]}/`);
-      const inner = g.scene, box = new T.Box3().setFromObject(inner), c = box.getCenter(new T.Vector3());
-      inner.position.sub(new T.Vector3(c.x, box.min.y, c.z));
-      const wrap = new T.Group(); wrap.add(inner); wrap.userData.size = box.getSize(new T.Vector3()); wrap.userData.anims = g.animations || []; let sk = false; inner.traverse(o => { if (o.isSkinnedMesh) sk = true; }); wrap.userData.skinned = sk;
-      inner.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; if (o.material && o.material.metalness === 1 && !o.material.map) { o.material = o.material.clone(); o.material.metalness = .25; o.material.roughness = .45; } } }); // glTF default material is fully metallic → black without an env map
-      markShared(wrap); M[k] = wrap;
+      M[k] = normalize(g, { metalFix: true });
     } catch (e) { console.warn('model failed', k, e); }
     onProgress && onProgress(.35 + .65 * (++done / keys.length));
   }));
@@ -93,7 +104,7 @@ export function loadGLB(url) {
 
 // clone a model: size by height (h), by longest side (len) or by factor (scale)
 export function putModel(M, key, parent, x, z, { h, len, scale, ry = 0, y = 0, face, tint } = {}) {
-  const src = M[key]; if (!src) return null;
+  const src = M[key] || packModels.get(key); if (!src) return null; // legacy keys first; GLB pack models (loadPack) as a fallback
   const sz = src.userData.size, k = scale || (h ? h / sz.y : len ? len / Math.max(sz.x, sz.z) : 1);
   const c = src.userData.skinned && skClone ? skClone(src) : src.clone(true); c.userData = { ...src.userData }; c.scale.setScalar(k); c.position.set(x, y, z); c.rotation.y = ry;
   if (face === 'x') c.children[0].rotation.y = Math.PI / 2;
@@ -105,9 +116,66 @@ export function putModel(M, key, parent, x, z, { h, len, scale, ry = 0, y = 0, f
 // an animated character/animal: returns { obj, mixer, play(name), update(dt) } or null
 export function putAnimated(M, key, parent, x, z, opts = {}) {
   const obj = putModel(M, key, parent, x, z, opts); if (!obj) return null;
-  const anims = (M[key] && M[key].userData.anims) || []; let mixer = null, cur = null;
+  const anims = ((M[key] || packModels.get(key)) || { userData: {} }).userData.anims || []; let mixer = null, cur = null;
   try { if (anims.length && T.AnimationMixer) mixer = new T.AnimationMixer(obj); } catch { mixer = null; }
   const play = (name) => { if (!mixer) return; const clip = anims.find(a => a.name === name || (a.name || '').toLowerCase().includes(name)); if (!clip || cur === clip) return; const act = mixer.clipAction(clip); act.reset().fadeIn(.2).play(); if (cur) mixer.clipAction(cur).fadeOut(.2); cur = clip; };
   play(opts.anim || 'idle');
   return { obj, mixer, play, update(dt) { mixer && mixer.update(dt); } };
+}
+
+// ------------------------------------------------------------ GLB asset packs (assets/packs, catalogued in assets/packs/index.json)
+// Nothing here runs at startup: the index is fetched on the first loadPack/getModel call. Models are loaded with the same
+// GLTFLoader and normalize() as the legacy packs, so putModel / putAnimated work with pack model ids unchanged.
+// Legacy keys always win: a pack model whose id is already a legacy key (or loaded by another pack) is skipped with a warning.
+// tools/index_packs.mjs writes the index; docs/GLB_PACKS.md explains how to add a pack.
+export const PACK_INDEX_URL = 'assets/packs/index.json';
+const packModels = new Map(), packOwner = new Map(), packLoads = new Map();
+let packIndex = null;
+export function loadPackIndex(url = PACK_INDEX_URL) {
+  if (!packIndex) packIndex = fetch(url).then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    .catch((e) => { console.warn('GLB pack index unavailable', e); packIndex = null; return { version: 1, packs: {} }; });
+  return packIndex;
+}
+// Load every valid model of one pack. Resolves (never rejects) to { ok, pack, models: [ids], skipped: [{ id, reason }] }.
+export function loadPack(packId, { onProgress } = {}) {
+  if (!packLoads.has(packId)) packLoads.set(packId, (async () => {
+    const res = { ok: false, pack: packId, models: [], skipped: [] };
+    try {
+      const idx = await loadPackIndex(), pack = idx.packs && idx.packs[packId];
+      if (!pack) { res.error = 'unknown pack'; console.warn('GLB pack not in index:', packId); packLoads.delete(packId); return res; }
+      if (!T) T = await import('three');
+      if (!GLTFLoader) ({ GLTFLoader } = await import('three/addons/loaders/GLTFLoader.js'));
+      if (!skClone) try { ({ clone: skClone } = await import('three/addons/utils/SkeletonUtils.js')); } catch { skClone = null; }
+      const loader = new GLTFLoader(), list = Object.entries(pack.models || {}); let done = 0;
+      await Promise.all(list.map(async ([id, m]) => {
+        try {
+          if (m.valid === false) throw new Error('failed validation: ' + (m.problems || []).join('; '));
+          if (legacy && id in legacy) throw new Error('id collides with a legacy model key');
+          if (packOwner.has(id) && packOwner.get(id) !== packId) throw new Error('id already loaded by pack ' + packOwner.get(id));
+          const g = await loader.loadAsync(m.path); // a URL: external textures / .bin resolve relative to the .glb, as exported
+          packModels.set(id, normalize(g, { metalFix: true, scale: m.scale, rotation: m.rotation })); packOwner.set(id, packId); res.models.push(id);
+        } catch (e) { res.skipped.push({ id, reason: String(e && e.message || e) }); console.warn('pack model skipped', id, e); }
+        onProgress && onProgress(++done / list.length);
+      }));
+      res.ok = res.skipped.length === 0;
+    } catch (e) { res.error = String(e && e.message || e); console.warn('GLB pack failed', packId, e); packLoads.delete(packId); }
+    return res;
+  })());
+  return packLoads.get(packId);
+}
+// A model by key: legacy models first (once loadModels has resolved), then loaded pack models. null if not loaded.
+export function getModel(key) { return (legacy && legacy[key]) || packModels.get(key) || null; }
+export const loadedPacks = () => [...new Set(packOwner.values())];
+// Forget a pack and free its GPU resources. Remove its clones from the scene first: they share these buffers.
+export function unloadPack(packId) {
+  let n = 0;
+  for (const [id, owner] of [...packOwner]) {
+    if (owner !== packId) continue;
+    packModels.get(id).traverse((o) => {
+      if (o.geometry) o.geometry.dispose();
+      for (const mat of [].concat(o.material || [])) { for (const v of Object.values(mat)) if (v && v.isTexture) v.dispose(); mat.dispose(); }
+    });
+    packModels.delete(id); packOwner.delete(id); n++;
+  }
+  packLoads.delete(packId); return n;
 }

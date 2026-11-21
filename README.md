@@ -231,6 +231,9 @@ Serve the folder over HTTP (`python -m http.server 8000`), or drag the unzipped 
 ## Not yet built (next steps)
 Chapter 4 (futsal, karaoke, village festival), jet ski, snooker, shops and spending coins, house decoration, character customisation, online player counts, leaderboards and multiplayer gameplay. Sign-in, cloud save and rooms now have client code and a Supabase schema, but they are **off until a backend is configured**: see `docs/MULTIPLAYER.md`.
 
+## New 3D models (GLB packs)
+Upload a folder of `.glb` files to `assets/packs/` through GitHub. A workflow validates them and indexes them, and the game loads them on demand. See `docs/GLB_PACKS.md`.
+
 ## Tests
 Run every suite from the project root (Node 18+, no install needed):
 

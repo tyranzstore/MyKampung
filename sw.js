@@ -17,7 +17,7 @@ self.addEventListener('fetch', (e) => {
   e.respondWith((async () => {
     const cache = await caches.open(CACHE);
     const put = (res) => { if (res && res.ok) cache.put(req, res.clone()).catch(() => {}); return res; };
-    if (STATIC.test(req.url)) {
+    if (STATIC.test(req.url) && !req.url.includes('/assets/packs/index.json')) { // the pack index changes with each upload: network first
       const hit = await cache.match(req);
       const fresh = fetch(req).then(put).catch(() => null);
       if (hit) { e.waitUntil(fresh); return hit; }

@@ -10,6 +10,7 @@
 // See docs/TOKABAH_GLB.md for the full asset spec given to the artist.
 import { readFileSync, existsSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
+import { dirname, join } from 'node:path';
 
 // ------------------------------------------------------------ specs (one place; the docs quote these numbers)
 const NPC = {
@@ -36,6 +37,11 @@ export const SPECS = {
   tokabah: { ...NPC, label: 'Tok Abah (semi-realistic NPC)' },
   npc: NPC,
   staticNpc: { ...NPC, label: 'Static village NPC (no rig, mobile)', requireRig: false, requiredClips: {}, heightAnyScale: true },
+  // packAsset: any model in a GLB pack (assets/packs): props, buildings, vehicles, characters. Any shape and size (the game
+  // normalises and scales), rig optional, any clip names, external textures/.bin allowed if the files exist next to it.
+  packAsset: { ...NPC, label: 'GLB pack asset (mobile)', fileTargetMB: 2, fileMaxMB: 8, trisTarget: 20000, trisMax: 60000, drawCallsTarget: 10, drawCallsMax: 40,
+    materialsTarget: 8, materialsMax: 24, imagesMax: 12, gpuTexTargetMB: 16, gpuTexMaxMB: 48, jointsMin: 1, jointsMax: 128, jointsTarget: 80,
+    requireRig: false, requiredClips: {}, anyShape: true, anyClips: true, allowExternal: true },
 };
 
 // ------------------------------------------------------------ GLB container
@@ -96,7 +102,8 @@ export function imageSize(b) {
 }
 
 // ------------------------------------------------------------ the check
-export function checkGlb(buf, spec = SPECS.tokabah) {
+// opts.resolve(uri) -> Buffer|null reads an external file referenced by the GLB (packAsset); null = missing.
+export function checkGlb(buf, spec = SPECS.tokabah, opts = {}) {
   const R = [], add = (level, id, msg) => R.push({ level, id, msg });
   const stats = { bytes: buf.length };
   let json, bin;
@@ -114,7 +121,9 @@ export function checkGlb(buf, spec = SPECS.tokabah) {
 
   // embedded resources only
   const external = [...(json.buffers || []).filter((b, i) => b.uri && !(i === 0 && !b.uri) && !b.uri.startsWith('data:')).map(b => b.uri), ...(json.images || []).filter(im => im.uri && !im.uri.startsWith('data:')).map(im => im.uri)];
-  add(external.length ? 'FAIL' : 'PASS', 'embedded', external.length ? `external files referenced: ${external.join(', ')} — embed everything in the .glb` : 'all data embedded');
+  if (spec.allowExternal) { const missing = external.filter(u => !opts.resolve || !opts.resolve(u)); stats.external = external;
+    add(missing.length ? 'FAIL' : 'PASS', 'embedded', missing.length ? `missing external file(s): ${missing.join(', ')}` : external.length ? `external files present: ${external.join(', ')}` : 'all data embedded'); }
+  else add(external.length ? 'FAIL' : 'PASS', 'embedded', external.length ? `external files referenced: ${external.join(', ')} — embed everything in the .glb` : 'all data embedded');
 
   // world matrices
   const parent = new Array(nodes.length).fill(-1); nodes.forEach((n, i) => (n.children || []).forEach(c => { parent[c] = i; }));
@@ -154,6 +163,8 @@ export function checkGlb(buf, spec = SPECS.tokabah) {
   if (lo[0] !== Infinity) {
     const size = [hi[0] - lo[0], hi[1] - lo[1], hi[2] - lo[2]]; stats.size = size.map(v => +v.toFixed(3));
     // upright: taller than deep, and not much narrower than tall (a T-pose arm span is about the body height)
+    if (spec.anyShape) add(size.every(v => v >= 0) && Math.max(...size) > 0 ? 'PASS' : 'FAIL', 'size', `${stats.size.join(' × ')} units (the game normalises and scales it)`);
+    else {
     const up = size[1] > size[2] * 1.5 && size[1] >= size[0] * 0.8;
     add(up ? 'PASS' : 'FAIL', 'y-up', up ? 'standing upright (Y-up)' : `model is lying down or not Y-up (size x/y/z = ${stats.size.join(' / ')} m)`);
     const metres = size[1] >= spec.heightMin && size[1] <= spec.heightMax;
@@ -162,6 +173,7 @@ export function checkGlb(buf, spec = SPECS.tokabah) {
     add(Math.abs(lo[1]) > spec.feetTolerance ? 'WARN' : 'PASS', 'origin-feet', `lowest point y = ${lo[1].toFixed(3)} m (origin should be at the feet)`);
     const cx = (lo[0] + hi[0]) / 2, cz = (lo[2] + hi[2]) / 2;
     add(Math.hypot(cx, cz) > spec.centreTolerance ? 'WARN' : 'PASS', 'origin-centre', `centre x/z = ${cx.toFixed(2)} / ${cz.toFixed(2)} m (should be about 0 / 0)`);
+    }
   } else add('FAIL', 'height', 'could not measure the model (POSITION min/max missing)');
 
   // rig
@@ -179,6 +191,7 @@ export function checkGlb(buf, spec = SPECS.tokabah) {
     let b = null;
     if (im.bufferView !== undefined && bin) { const bv = json.bufferViews[im.bufferView]; b = bin.subarray(bv.byteOffset || 0, (bv.byteOffset || 0) + bv.byteLength); }
     else if (im.uri && im.uri.startsWith('data:')) b = Buffer.from(im.uri.split(',')[1] || '', 'base64');
+    else if (im.uri && spec.allowExternal && opts.resolve) b = opts.resolve(im.uri);
     return { i, name: im.name || `image ${i}`, ...(b ? imageSize(b) : { type: 'external', w: 0, h: 0 }) };
   });
   stats.textures = imgs.map(t => `${t.name} ${t.w}×${t.h} ${t.type}`);
@@ -211,7 +224,7 @@ export function checkGlb(buf, spec = SPECS.tokabah) {
       if (Math.max(rx, rz) > spec.rootMotionMax) add('FAIL', `in-place:${want}`, `"${want}" moves the root ${Math.max(rx, rz).toFixed(2)} m sideways — export it in place (no root motion)`); }
   }
   const extra = names.filter(n => !(n in spec.requiredClips) && !spec.optionalClips.includes(n));
-  if (extra.length) add('WARN', 'clips', `extra clips not used by the game: ${extra.join(', ')}`);
+  if (extra.length && !spec.anyClips) add('WARN', 'clips', `extra clips not used by the game: ${extra.join(', ')}`);
 
   // tidy file
   if ((json.cameras || []).length || (json.extensions && json.extensions.KHR_lights_punctual)) add('WARN', 'extras', 'file contains cameras or lights — remove them');
@@ -222,11 +235,11 @@ export function checkGlb(buf, spec = SPECS.tokabah) {
 
 // ------------------------------------------------------------ CLI
 if (import.meta.url === pathToFileURL(process.argv[1] || '').href) {
-  const args = process.argv.slice(2), file = args.find(a => !a.startsWith('--')), pi = args.indexOf('--profile'), profile = pi >= 0 ? args[pi + 1] : 'tokabah';
-  if (!file) { console.log('usage: node tools/check_glb.mjs <file.glb> [--profile tokabah|npc|staticNpc] [--json]'); process.exit(2); }
+  const args = process.argv.slice(2), pi = args.indexOf('--profile'), profile = pi >= 0 ? args[pi + 1] : 'tokabah', file = args.find((a, i) => !a.startsWith('--') && i !== pi + 1);
+  if (!file) { console.log(`usage: node tools/check_glb.mjs <file.glb> [--profile ${Object.keys(SPECS).join('|')}] [--json]`); process.exit(2); }
   if (!existsSync(file)) { console.log(`not found: ${file}`); process.exit(2); }
   if (!SPECS[profile]) { console.log(`unknown profile "${profile}" (have: ${Object.keys(SPECS).join(', ')})`); process.exit(2); }
-  const res = checkGlb(readFileSync(file), SPECS[profile]);
+  const dir = dirname(file), res = checkGlb(readFileSync(file), SPECS[profile], { resolve: (u) => { const f = join(dir, decodeURIComponent(u)); return existsSync(f) ? readFileSync(f) : null; } });
   if (args.includes('--json')) console.log(JSON.stringify({ file, profile, ...res }, null, 1));
   else {
     console.log(`\n${file} — ${SPECS[profile].label}\n`);
