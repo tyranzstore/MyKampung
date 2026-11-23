@@ -1,4 +1,19 @@
 {
  "version": 1,
- "packs": {}
+ "packs": {
+  "bot": {
+   "name": "Bot modular MYNegeri",
+   "category": "vehicles",
+   "models": {
+    "bot/hull_lv1": {
+     "path": "assets/packs/bot/hull_lv1.glb",
+     "file": "bot/hull_lv1.glb",
+     "category": "boat",
+     "bytes": 697116,
+     "triangles": 9858,
+     "valid": true
+    }
+   }
+  }
+ }
 }

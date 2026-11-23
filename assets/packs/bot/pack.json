@@ -1,0 +1,7 @@
+{
+  "name": "Bot modular MYNegeri",
+  "category": "vehicles",
+  "models": {
+    "hull_lv1": { "id": "bot/hull_lv1", "category": "boat" }
+  }
+}
