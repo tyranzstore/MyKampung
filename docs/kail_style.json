@@ -1,0 +1,51 @@
+{
+  "game": "Jelajah Kail (MyKampung Fasa 1)",
+  "origin": "Designed here; nothing is extracted from any other game.",
+  "nonnegotiables": [
+    "Soft low-poly water with a clear colour per spot; the water colour alone says where you are",
+    "Low camera behind a seated angler on a wet wooden pier (or boat deck); rod bends toward the line",
+    "Small underwater inset that shows depth, bait and the fish coming in",
+    "Warm Malay-first labels, big touch buttons, one main action at a time"
+  ],
+  "spots": {
+    "tasik": {
+      "mood": "golden morning",
+      "skyTop": "#6f9fd0",
+      "skyBottom": "#ffd9a8",
+      "water": "#4f9d8f"
+    },
+    "sungai": {
+      "mood": "sunset with a lifting bridge silhouette",
+      "skyTop": "#4a3f7a",
+      "skyBottom": "#ff8f52",
+      "water": "#5c6f78"
+    },
+    "terumbu": {
+      "mood": "bright noon",
+      "skyTop": "#3fa3e0",
+      "skyBottom": "#c8eef7",
+      "water": "#2fc0cf"
+    },
+    "dalam": {
+      "mood": "open sea",
+      "skyTop": "#2c68ad",
+      "skyBottom": "#a9cdea",
+      "water": "#0f4f86"
+    }
+  },
+  "ui": {
+    "panel": "rgba(8,14,24,.78)",
+    "text": "#ffffff",
+    "good": "#2ecc71",
+    "warn": "#f1c40f",
+    "danger": "#e74c3c",
+    "gold": "#ffd452"
+  },
+  "budget": {
+    "pixelRatioMax": 1.5,
+    "drawCalls": 100,
+    "triangles": 150000,
+    "textureMax": 512
+  },
+  "reference": "Owner's concept image 'Sunset Pier Fishing Challenge': warm dusk, roofed pier, village on stilts, boats, seated angler in a songkok, bent rod, gradient tension bar. Mood and composition only; all geometry is built here."
+}

@@ -2,7 +2,7 @@
 // Pages, code and styles: network first, so updates always arrive; the cache is only an offline fallback.
 // Model packs, GLB/images and the pinned three.js CDN files: served from cache, refreshed in the background.
 // It never touches localStorage, so saves, autosave, backups and the multiple-tab guard are unaffected.
-const CACHE = 'mykampung-v1';
+const CACHE = 'mykampung-v2'; // v2: Jelajah Kail (Fasa 1)
 const STATIC = /\/assets\/|cdn\.jsdelivr\.net\/npm\/three@0\.170\.0\//;
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (e) => e.waitUntil((async () => {

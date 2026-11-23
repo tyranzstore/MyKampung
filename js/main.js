@@ -252,12 +252,12 @@ async function resultScreen(title, res, coins, extra = '') {
 
 async function playGame(kind, opts = {}) {
   if (kind === 'karaoke') { ui.busy = true; audioInit(); wantMusic(null); const res = await runKaraoke(opts); ui.busy = false; wantMusic('kampung'); if (!res) { toast('Tak apa, cuba lagi nanti.', 'No worries, try again later.'); return null; } const prev = S.best.karaoke || 0; if (res.stars > prev) S.best.karaoke = res.stars; if (!opts.practice) save(); return res; }
-  ui.busy = true; audioInit(); wantMusic(['fish', 'seafish', 'boat', 'beach', 'volley', 'photo'].includes(kind) ? 'laut' : 'kampung');
+  ui.busy = true; audioInit(); wantMusic(['fish', 'seafish', 'kail', 'boat', 'beach', 'volley', 'photo'].includes(kind) ? 'laut' : 'kampung');
   let res;
   if (S.gfx !== '2d' && has3D()) {
     try { toast('Memuatkan 3D…', 'Loading 3D…'); res = await runGame3D(kind, opts); }
-    catch (e) { console.warn('3D unavailable, using 2D', e && e.stack); $('game').hidden = true; $('game').classList.remove('is3d'); if (kind === 'seafish' || kind === 'jalandrag') { ui.busy = false; wantMusic('kampung'); need3D(); return null; } toast('3D tak dapat dimuatkan — guna 2D', "Couldn't load 3D — using 2D"); res = await runGame(kind, opts); }
-  } else if (kind === 'seafish' || kind === 'jalandrag') { ui.busy = false; wantMusic('kampung'); if (kind === 'seafish') need3D(); return null; } else res = await runGame(kind, opts);
+    catch (e) { console.warn('3D unavailable, using 2D', e && e.stack); $('game').hidden = true; $('game').classList.remove('is3d'); if (kind === 'seafish' || kind === 'jalandrag' || kind === 'kail') { ui.busy = false; wantMusic('kampung'); need3D(); return null; } toast('3D tak dapat dimuatkan — guna 2D', "Couldn't load 3D — using 2D"); res = await runGame(kind, opts); }
+  } else if (kind === 'seafish' || kind === 'jalandrag' || kind === 'kail') { ui.busy = false; wantMusic('kampung'); if (kind !== 'jalandrag') need3D(); return null; } else res = await runGame(kind, opts);
   ui.busy = false; wantMusic('kampung');
   if (!res) { toast('Tak apa, cuba lagi nanti.', 'No worries, try again later.'); return null; }
   const prev = S.best[kind] || 0; if (res.stars > prev) S.best[kind] = res.stars;
@@ -411,6 +411,17 @@ async function seaFishing(practice = false) {
   await resultScreen('Rezeki laut!', res, 0, `<p class="reward">🐟 ${res.caught} ekor · ${res.kg.toFixed(1)} kg${res.sold ? ` · +${fmtRM(res.sold)} dijual` : ''}</p>` + catchHtml((res.fish || []).map(f => ({ ...f, n: 0 }))));
 }
 
+// ---- JELAJAH KAIL (Fasa 1): four fishing spots, tackle shop, cooler. 3D only. Rewards are paid into the RM wallet in-game (daily limit).
+async function kailFishing(practice = false) {
+  checkDaily();
+  if (!practice && !done(3, 5)) return modal({ kicker: '🔒 Bab 3 · Turun ke Laut', title: 'Jelajah Kail', body: 'Siapkan Bab 3 dengan Pak Mat dulu. · Finish Chapter 3 with Pak Mat first.', buttons: [['OK', 'ok', true]] });
+  if (S.gfx === '2d' || !has3D()) return modal({ kicker: '🎣 JELAJAH KAIL', title: 'Perlukan grafik 3D', body: 'Tukar di Menu → Grafik: 3D. · Switch in Menu → Graphics: 3D.', buttons: [['OK', 'ok', true]] });
+  const res = await playGame('kail', { practice }); if (!res) return;
+  save(); hud(); town.rebuild && town.rebuild();
+  if (!res.caught) return toast('Air tenang hari ni. Cuba lagi!', 'Quiet water today. Try again!');
+  await resultScreen('Rezeki kail!', res, 0, `<p class="reward">🐟 ${res.caught} ekor · ${res.kg.toFixed(1)} kg${res.sold ? ` · +${fmtRM(res.sold)} dijual` : ''}</p>` + catchHtml((res.fish || []).map(f => ({ ...f, n: 0 }))));
+}
+
 // ---- JALAN DRAG: drag racing mini-game (3D only). Prize money is paid into the RM wallet during the session.
 async function jalanDrag(practice = false) {
   checkDaily();
@@ -485,8 +496,9 @@ async function onTap(hit) {
     if (at(3, 2)) return missionGame('boat');
     if (at(3, 3)) return missionGame('fish');
     if (done(3, 5)) {
-      const c = await modal({ kicker: 'JETI NELAYAN', title: '🎣 Nak buat apa?', html: `<p><b>1. Kerja harian</b> — memancing untuk Pak Mat (RM50). ${S.daily.fishDone ? '✓ <small>Dah siap hari ni</small>' : ''}</p><p><b>2. Simulator Pancing Laut</b> — bawa bot ke laut, pancing 10 spesies laut Malaysia. <small>Sea fishing simulator.</small></p>`, buttons: [['🐟 Kerja harian', 'job'], ['🚤 Pancing Laut', 'sea', true], ['Tutup', 'ok']] });
+      const c = await modal({ kicker: 'JETI NELAYAN', title: '🎣 Nak buat apa?', html: `<p><b>1. Kerja harian</b> — memancing untuk Pak Mat (RM50). ${S.daily.fishDone ? '✓ <small>Dah siap hari ni</small>' : ''}</p><p><b>2. Simulator Pancing Laut</b> — bawa bot ke laut, pancing 10 spesies laut Malaysia. <small>Sea fishing simulator.</small></p>`, buttons: [['🐟 Kerja harian', 'job'], ['🚤 Pancing Laut', 'sea', true], ['🗺️ Jelajah Kail', 'kail'], ['Tutup', 'ok']] });
       if (c === 'sea') return seaFishing();
+      if (c === 'kail') return kailFishing();
       if (c !== 'job') return;
       if (S.daily.fishDone) return toast('Dah memancing hari ni. Ikan datang lagi esok!', 'Already fished today. The fish return tomorrow!'); if (await jobPrompt('Memancing di jeti Pak Mat', 50)) return dailyJob('fish'); return; }
     return toast('Jeti Nelayan', 'Fishing jetty');
@@ -551,12 +563,13 @@ $('muteBtn').textContent = S.muted ? '🔇' : '🔊';
 $('fsBtn').onclick = () => { try { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen().catch(() => {}); } catch {} };
 $('menuBtn').onclick = async () => {
   sfx.tap();
-  const v = await modal({ kicker: 'MENU', title: 'MyKampung', html: `<p class="muted">Gelaran · Title: <b>${rank()}</b> · ⭐ ${S.stars} · 💵 ${fmtRM(balance())}</p>`, buttons: [['Cara main · How to play', 'help'], ['🎉 Aktiviti · Activities', 'acts'], ['Latihan mini game · Practice', 'practice'], [S.timeMode === 'day' ? 'Masa: sentiasa siang' : 'Masa: ikut jam sebenar', 'time'], ['🐟 Buku Ikan · Fish book', 'fishbook'], [S.music === false ? '🎵 Muzik: tutup → buka' : '🎵 Muzik: buka → tutup', 'music'], [S.gfx === '2d' ? 'Grafik: 2D (ringan) → tukar 3D' : 'Grafik: 3D → tukar 2D (ringan)', 'gfx'], ['💾 Simpanan · Save backup', 'savedata'], ['🌐 Dalam talian · Online', 'online'], ['Kredit · Credits', 'credits'], ['Mula semula · Restart', 'reset'], ['Tutup · Close', 'ok', true]] });
+  const v = await modal({ kicker: 'MENU', title: 'MYNegeri', html: `<p class="muted">Gelaran · Title: <b>${rank()}</b> · ⭐ ${S.stars} · 💵 ${fmtRM(balance())}</p>`, buttons: [['Cara main · How to play', 'help'], ['🎉 Aktiviti · Activities', 'acts'], ['Latihan mini game · Practice', 'practice'], [S.timeMode === 'day' ? 'Masa: sentiasa siang' : 'Masa: ikut jam sebenar', 'time'], ['🐟 Buku Ikan · Fish book', 'fishbook'], [S.music === false ? '🎵 Muzik: tutup → buka' : '🎵 Muzik: buka → tutup', 'music'], [S.gfx === '2d' ? 'Grafik: 2D (ringan) → tukar 3D' : 'Grafik: 3D → tukar 2D (ringan)', 'gfx'], ['💾 Simpanan · Save backup', 'savedata'], ['🌐 Dalam talian · Online', 'online'], ['Kredit · Credits', 'credits'], ['Mula semula · Restart', 'reset'], ['Tutup · Close', 'ok', true]] });
   if (v === 'help') return howTo();
   if (v === 'music') { setMusic(S.music === false); toast(S.music === false ? 'Muzik ditutup' : 'Muzik dibuka', S.music === false ? 'Music off' : 'Music on'); return; }
   if (v === 'acts') {
-    const k = await modal({ kicker: 'AKTIVITI · ACTIVITIES', title: 'Nak buat apa hari ni?', body: S.chapter < 4 ? 'Aktiviti dibuka dalam Bab 4 (Pantai Miami). · Activities open in Chapter 4.' : 'Setiap aktiviti beri ganjaran sekali sehari. · Each activity pays once a day.', buttons: [...Object.entries(ACTIVITIES).map(([id, a]) => [`${a.ic} ${a.bm}${(S.daily.act || {})[id] ? ' ✓' : ''}`, id]), ['🎣 Pancing Laut', 'seafish'], ['🏎️ Jalan Drag', 'jalandrag'], ['Tutup · Close', 'ok', true]] });
+    const k = await modal({ kicker: 'AKTIVITI · ACTIVITIES', title: 'Nak buat apa hari ni?', body: S.chapter < 4 ? 'Aktiviti dibuka dalam Bab 4 (Pantai Miami). · Activities open in Chapter 4.' : 'Setiap aktiviti beri ganjaran sekali sehari. · Each activity pays once a day.', buttons: [...Object.entries(ACTIVITIES).map(([id, a]) => [`${a.ic} ${a.bm}${(S.daily.act || {})[id] ? ' ✓' : ''}`, id]), ['🎣 Pancing Laut', 'seafish'], ['🗺️ Jelajah Kail', 'kail'], ['🏎️ Jalan Drag', 'jalandrag'], ['Tutup · Close', 'ok', true]] });
     if (k === 'seafish') { if (town.focus) town.focus('jeti', .9); return seaFishing(); }
+    if (k === 'kail') { if (town.focus) town.focus('jeti', .9); return kailFishing(); }
     if (k === 'jalandrag') { if (S.chapter < 4) return activity('drag'); if (town.focus) town.focus('drag', .9); return jalanDrag(); }
     if (ACTIVITIES[k]) { if (town.focus) town.focus(ACTIVITIES[k].place, .9); return activity(k); }
     return;
@@ -568,7 +581,7 @@ $('menuBtn').onclick = async () => {
       return `<li class="${e ? '' : 'locked'}"><b style="color:${rr.col}">${'★'.repeat(rr.stars)}</b> ${e ? f.bm : '???'} <small>${e ? `${f.en} · ${e.n}× · max ${e.max.toFixed(2)} kg` : rr.bm}</small></li>`; }).join('');
     return modal({ kicker: 'BUKU IKAN · FISH BOOK', title: `${got}/${FISH.length} spesies`, html: `<ul class="catchList book">${rows}</ul><p class="muted small">Pergi memancing di jeti Pak Mat untuk lengkapkan buku. · Go fishing at Pak Mat's jetty to fill the book.</p>`, buttons: [['Tutup · Close', 'ok', true]] });
   }
-  if (v === 'credits') return modal({ kicker: 'KREDIT · CREDITS', title: 'MyKampung', html: `<ul class="credits">
+  if (v === 'credits') return modal({ kicker: 'KREDIT · CREDITS', title: 'MYNegeri', html: `<ul class="credits">
     <li><b>3D models:</b> Kenney — City Kit (Suburban), City Kit (Roads), Car Kit, Building Kit (CC0) · kenney.nl</li>
     <li><b>Nature models:</b> Ultimate Nature Pack by Quaternius (CC0) · quaternius.com</li>
     <li><b>Props, nature &amp; tools:</b> KayKit City Builder Bits, Forest Nature Pack, RPG Tools Bits by Kay Lousberg (CC0) · kaylousberg.com</li>
@@ -579,9 +592,10 @@ $('menuBtn').onclick = async () => {
     <li><b>Bandar Baru &amp; activities:</b> Kenney Mini Characters &amp; Mini Shop (CC0); Low Poly Playground &amp; Park, School, Sports and Market Packs by reodesuxz; City Pack, Race Kit, Pretty Park Set, Ultimate Food Pack, Mini Skate Kit and Animals (Poly Pizza / Quaternius-style low-poly packs supplied by the game's owner)</li>
     <li><b>Engine:</b> three.js (MIT)</li></ul>`, buttons: [['OK', 'ok', true]] });
   if (v === 'practice') {
-    const g = await modal({ kicker: 'LATIHAN · PRACTICE', title: 'Pilih mini game', body: 'Main sesuka hati — tiada upah, kemajuan tidak berubah. Play freely: no rewards, your progress is unchanged.', buttons: [['🌿 Tebas Laman', 'grass'], ['🏠 Baiki Rumah', 'repair'], ['🚗 Cuci Kereta', 'carwash'], ['🌾 Tuai Padi', 'padi'], ['🛶 Baiki Bot', 'boat'], ['🎣 Memancing', 'fish'], ['🏖️ Bersih Pantai', 'beach'], ['🚤 Pancing Laut', 'seafish'], ['🏎️ Jalan Drag', 'jalandrag'], ...Object.entries(ACTIVITIES).map(([k, a]) => [`${a.ic} ${a.bm}`, k]), ['🏟️ Futsal 3v3', 'futsal3v3'], ['Tutup · Close', 'ok', true]] });
+    const g = await modal({ kicker: 'LATIHAN · PRACTICE', title: 'Pilih mini game', body: 'Main sesuka hati — tiada upah, kemajuan tidak berubah. Play freely: no rewards, your progress is unchanged.', buttons: [['🌿 Tebas Laman', 'grass'], ['🏠 Baiki Rumah', 'repair'], ['🚗 Cuci Kereta', 'carwash'], ['🌾 Tuai Padi', 'padi'], ['🛶 Baiki Bot', 'boat'], ['🎣 Memancing', 'fish'], ['🏖️ Bersih Pantai', 'beach'], ['🚤 Pancing Laut', 'seafish'], ['🗺️ Jelajah Kail', 'kail'], ['🏎️ Jalan Drag', 'jalandrag'], ...Object.entries(ACTIVITIES).map(([k, a]) => [`${a.ic} ${a.bm}`, k]), ['🏟️ Futsal 3v3', 'futsal3v3'], ['Tutup · Close', 'ok', true]] });
     if (g === 'ok') return;
     if (g === 'seafish') return seaFishing(true);
+    if (g === 'kail') return kailFishing(true);
     if (g === 'jalandrag') return jalanDrag(true);
     const best = { ...S.best }; const res = await playGame(g, { seed: Date.now() % 1000, practice: true }); S.best = best;
     if (res) await modal({ kicker: 'LATIHAN · PRACTICE', title: 'Bagus!', html: `<div class="bigstars">${[0, 1, 2].map(k => `<span class="${k < res.stars ? 'on' : ''}">★</span>`).join('')}</div><p class="muted">Masa · Time: ${Math.round(res.time)}s</p>`, buttons: [['OK', 'ok', true]] });
@@ -614,7 +628,7 @@ async function saveMenu() {
   if (!picked) return;
   let text = ''; try { text = await picked.text(); } catch {}
   const r = parseSave(text);
-  if (!r.ok) return modal({ kicker: '💾 IMPORT', title: 'Fail tidak sah', body: 'Ini bukan fail simpanan MyKampung. Kemajuan anda tidak berubah. · This is not a MyKampung save file. Your progress is unchanged.', buttons: [['OK', 'ok', true]] });
+  if (!r.ok) return modal({ kicker: '💾 IMPORT', title: 'Fail tidak sah', body: 'Ini bukan fail simpanan MYNegeri. Kemajuan anda tidak berubah. · This is not a MYNegeri save file. Your progress is unchanged.', buttons: [['OK', 'ok', true]] });
   const d = r.data;
   const c = await modal({ kicker: '💾 IMPORT', title: 'Ganti kemajuan?', html: `<p>Fail ini: <b>Bab ${d.chapter}</b> · ⭐ ${d.stars || 0} · ${fmtRM(d.coins)}</p><p>Sekarang: <b>Bab ${S.chapter}</b> · ⭐ ${S.stars} · ${fmtRM(balance())}</p><p class="muted">Kemajuan sekarang akan diganti. · Your current progress will be replaced by this file.</p>`, buttons: [['Ya, import · Yes, import', 'yes'], ['Batal · Cancel', 'no', true]] });
   if (c !== 'yes') return;

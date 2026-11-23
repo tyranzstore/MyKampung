@@ -116,7 +116,7 @@ export function perf(vid, c) {
 
 // ---------------------------------------------------------------- AI opponents: same category, matched to the player's build
 export const DIFF = { mudah: { bm: 'Mudah', en: 'Easy', et: 1.07, react: [.28, .42], q: .55, pay: .7 }, sederhana: { bm: 'Sederhana', en: 'Medium', et: 1.0, react: [.17, .3], q: .8, pay: 1 }, sukar: { bm: 'Sukar', en: 'Hard', et: .95, react: [.1, .2], q: .95, pay: 1.6 } };
-const RIVALS = ['Abang Jamal', 'Kak Ros', 'Din Turbo', 'Ah Seng', 'Muthu Laju', 'Wan Kapcai', 'Pak Cik Lim', 'Siti Nitro', 'Budak Rempit'];
+const RIVALS = ['Abang Jamal', 'Kak Ros', 'Din Turbo', 'Taeyang', 'Muthu Laju', 'Wan Kapcai', 'Pak Cik Lim', 'Siti Nitro', 'Budak Rempit'];
 export function makeOpponent(g, cat, dist, diff, rnd = Math.random) {
   const me = g.sel[cat], mePI = perf(me, g.cars[me]), D = DIFF[diff], target = mePI.et * D.et * (1 + (rnd() - .5) * .03);
   const ids = cat === 'car' ? CAR_IDS : BIKE_IDS;
