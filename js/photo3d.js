@@ -185,7 +185,7 @@ export function photoScene({ T, environment, Sparks, palm, stiltHouse, bridgeFar
         o.drawImage(c, b, b); if (cfg.frame === 'polaroid' && cfg.stamp) { o.fillStyle = '#c0392b'; o.font = `900 ${Math.round(bb * .26)}px system-ui`; o.textAlign = 'center'; o.fillText(PH_LOCS[cfg.loc].stamp, out.width / 2, OH + b + bb * .45); o.fillStyle = '#7f8c8d'; o.font = `600 ${Math.round(bb * .16)}px system-ui`; o.fillText(new Date().toLocaleDateString('ms-MY', { day: 'numeric', month: 'long', year: 'numeric' }), out.width / 2, OH + b + bb * .72); } }
       const o = out.getContext('2d'), u = Math.round(OW / 40);
       if (cfg.stamp && cfg.frame !== 'polaroid') { o.font = `900 ${u * 1.1}px system-ui`; o.textAlign = 'left'; o.fillStyle = 'rgba(0,0,0,.4)'; const ox = cfg.frame === 'tiada' ? u : Math.round(OW * .045) + u, oy = (cfg.frame === 'tiada' ? OH : OH + Math.round(OW * .045)) - u * 1.2; o.fillText(`📍 ${PH_LOCS[cfg.loc].stamp}`, ox + 2, oy + 2); o.fillStyle = '#fff'; o.fillText(`📍 ${PH_LOCS[cfg.loc].stamp}`, ox, oy); }
-      if (cfg.mark) { o.font = `900 ${u * .95}px system-ui`; o.textAlign = 'right'; o.fillStyle = 'rgba(255,255,255,.85)'; o.strokeStyle = 'rgba(0,0,0,.35)'; o.lineWidth = 3; const tx = out.width - (cfg.frame === 'tiada' ? u : Math.round(OW * .045) + u), ty = (cfg.frame === 'tiada' ? u * 1.8 : Math.round(OW * .045) + u * 1.8); o.strokeText('TYRANZ · MyKampung', tx, ty); o.fillText('TYRANZ · MyKampung', tx, ty); }
+      if (cfg.mark) { o.font = `900 ${u * .95}px system-ui`; o.textAlign = 'right'; o.fillStyle = 'rgba(255,255,255,.85)'; o.strokeStyle = 'rgba(0,0,0,.35)'; o.lineWidth = 3; const tx = out.width - (cfg.frame === 'tiada' ? u : Math.round(OW * .045) + u), ty = (cfg.frame === 'tiada' ? u * 1.8 : Math.round(OW * .045) + u * 1.8); o.strokeText('TYRANZ · MYNegeri', tx, ty); o.fillText('TYRANZ · MYNegeri', tx, ty); }
       let data = ''; try { data = out.toDataURL('image/jpeg', .86); } catch { data = ''; }
       return { data, w: out.width, h: out.height, real: !!im };
     }
@@ -205,9 +205,9 @@ export function photoScene({ T, environment, Sparks, palm, stiltHouse, bridgeFar
       const chk = (id, ok) => { if (ok && !pm.done[id]) { pm.done[id] = Date.now(); const m = PH_MISSIONS.find(x => x.id === id); earn(m.rm, `Misi foto: ${m.bm}`); got.push(m); } };
       chk('jambatan', p.loc === 'jambatan'); chk('pose3', pm.poses.length >= 3); chk('sunset', p.loc === 'pantai' && p.time === 'sunset'); chk('npc', p.npc); chk('travel', pm.locs.length >= 7); save();
       got.forEach((m, i) => setTimeout(() => { sfx.star(1); toast(`🎯 Misi selesai: ${m.bm}`, `+${fmtRM(m.rm)} · ${m.en}`); }, 700 + i * 1400)); }
-    const dl = (p) => { const a = document.createElement('a'); a.href = p.data; a.download = `MyKampung-${p.loc}-${new Date(p.date).toISOString().slice(0, 10)}-${p.id || 'foto'}.jpg`; document.body.append(a); a.click(); a.remove(); };
-    async function sharePhoto(p) { try { const blob = await (await fetch(p.data)).blob(), file = new File([blob], `MyKampung-${p.loc}.jpg`, { type: 'image/jpeg' });
-        if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: 'MyKampung', text: `${PH_LOCS[p.loc].bm} · TYRANZ MyKampung` }); return; } } catch (e) { if (e && e.name === 'AbortError') return; }
+    const dl = (p) => { const a = document.createElement('a'); a.href = p.data; a.download = `MYNegeri-${p.loc}-${new Date(p.date).toISOString().slice(0, 10)}-${p.id || 'foto'}.jpg`; document.body.append(a); a.click(); a.remove(); };
+    async function sharePhoto(p) { try { const blob = await (await fetch(p.data)).blob(), file = new File([blob], `MYNegeri-${p.loc}.jpg`, { type: 'image/jpeg' });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: 'MYNegeri', text: `${PH_LOCS[p.loc].bm} · TYRANZ MYNegeri` }); return; } } catch (e) { if (e && e.name === 'AbortError') return; }
       dl(p); toast('Dimuat turun', 'Sharing not supported here — downloaded instead'); }
     async function paintCount() { const all = await DB.all(); const n = q('[data-a="gal"] .n'); if (n) n.textContent = all.length || ''; }
     async function openGallery(focusId) { const all = await DB.all(); sheet.hidden = false;
