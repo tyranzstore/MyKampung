@@ -13,7 +13,7 @@ test('four spots in order, each opens from the previous one', () => {
 });
 test('every spot has at least 4 species and every species has a valid rarity and model name', () => {
   for (const s of R.SPOTS) assert.ok(R.fishAt(s.id).length >= 4, s.id);
-  for (const f of R.KAIL_FISH) { assert.ok(R.RARITY_PTS[f.rar], f.id); assert.equal(f.model, R.BODY_OF[f.id] || 'fish_' + f.id); assert.match(f.model, /^fish_[A-Za-z_]+$/); assert.ok(f.kg[0] < f.kg[1]); }
+  for (const f of R.KAIL_FISH) { assert.ok(R.RARITY_PTS[f.rar], f.id); assert.equal(f.model, R.BODY_OF[f.id] || 'fish_' + f.id); assert.match(f.model, /^fish_[A-Za-z_-]+$/); assert.ok(f.kg[0] < f.kg[1]); }
 });
 test('forbidden reference names never appear in the data', () => {
   const bad = /Kenyir|Rajang|Semporna|Mekong|Amazon|Lofoten|Hokkaido|Geng Pekan|Pekan Pusaka|Kuala Pusaka|Dinar|Ah Seng|Arus Kencana|Anak Alur|Dinamo|Futsal Jalanan|Ekspedisi Pancing|Log selam/i;
@@ -121,6 +121,13 @@ test('daily payout: full price up to the limit, 20% above, resets next day', () 
 });
 test('depth helpers stay inside the spot', () => { assert.equal(R.clampDepth('tasik', 99), 12); assert.equal(R.clampDepth('tasik', -3), 0); assert.equal(R.depthStep('dalam'), 2); assert.equal(R.depthStep('tasik'), 1); });
 test('save repair covers bait, depth and daily record', () => { const S = { sea: { kail: { bait: 'x', depth: -4, day: { date: 5, rm: 'a' } } } }; const k = R.kailSave(S); assert.equal(k.bait, 'cacing'); assert.equal(k.depth, 3); assert.deepEqual(k.day, { date: '', rm: 0 }); });
+test('every species shows a model that exists in the game packs; borrowed bodies are listed', async () => {
+  const fs = await import('node:fs'); const src = fs.readFileSync(new URL('../../js/models.js', import.meta.url), 'utf8');
+  const pack2 = Object.keys(JSON.parse(fs.readFileSync(new URL('../../assets/models2.json', import.meta.url), 'utf8')));
+  for (const f of R.KAIL_FISH) assert.ok(src.includes(`'${f.model}'`) || pack2.includes(f.model), `${f.id} -> ${f.model}`);
+  const own = R.KAIL_FISH.filter((f) => f.model === 'fish_' + f.id).map((f) => f.id), borrowed = R.KAIL_FISH.filter((f) => f.model !== 'fish_' + f.id).map((f) => f.id);
+  assert.equal(own.length, 10); assert.deepEqual(borrowed.sort(), Object.keys(R.BODY_OF).sort());
+});
 
 let failed = 0;
 for (const [name, fn] of tests) { try { await fn(); console.log('PASS', name); } catch (e) { failed++; console.log('FAIL', name, '\n', e && e.message); } }

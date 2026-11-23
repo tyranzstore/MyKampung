@@ -53,3 +53,20 @@ Bajet: ~100 draw call, 150k segi tiga — dipatuhi. FPS di atas ialah **GL peris
 - Tiada LOD atau tekstur termampat (KTX2 dilarang oleh CI repo).
 - Bandar, watak dan mini game lain belum disentuh (Fasa 3 dan 4).
 - Sedikit pertambahan kiraan geometri setiap kali bertukar tempat (kira-kira 10) masih perlu dijejak.
+
+## Fasa 2.1 — penghalusan rupa
+- **Air:** kilau dan pantulan dikurangkan (roughness 0.34, tiada metalness, pantulan langit 0.35, laluan kilau lebih sempit dan pudar); warna dalam lebih gelap; ketinggian ombak berbeza bagi setiap tempat; exposure adegan kail 1.0.
+- **Pokok kelapa:** batang melengkung dan tirus dengan gelang, pelepah melengkung berbulu (tekstur alfa), buah kelapa; tiga varian bentuk, ketinggian dan putaran rawak terkawal; dilukis dengan `InstancedMesh` (2 draw call bagi setiap varian).
+- **Rumah kampung:** bumbung gabel curam dengan papan pemeleh dan tunjuk langit, serambi berpagar, tangga, tingkap berbingkai dengan daun tingkap, pintu, rumah dapur sisi; lebar, tinggi, warna dan putaran berbeza. Tiada GLB rumah kampung dalam repo (hanya rumah suburban Kenney), jadi ini masih binaan kod.
+- **Langit:** cakera matahari lebih kecil dan hangat, sinaran lembut jejari, awan bergerak yang diwarnakan ikut suasana.
+- **Persembahan:** joran di tangan hero; ujian baharu memastikan setiap spesies menunjuk model yang wujud. Ujian itu menemui pepijat: Haruan menunjuk kunci `fish_Alu` yang tidak wujud (kini `fish_Alu-Alu`).
+- **Padanan model ikan:** 10 daripada 14 spesies guna model sendiri. Tilapia, Keli, Haruan dan Sebarau meminjam badan ikan lain dengan kulit sendiri kerana tiada GLB air tawar.
+
+| Tempat | Draw call | Segi tiga (T/S) | Segi tiga (R) | FPS perisian T / S / R |
+|---|---|---|---|---|
+| Tasik Tenang | 53 | 54,302 | 48,770 | 6.0 / 6.4 / 10.4 |
+| Sungai Lembayung | 51 | 52,842 | 47,310 | 6.0 / 6.0 / 10.4 |
+| Terumbu Mentari | 51 | 36,129 | 30,597 | 7.2 / 7.2 / 13.2 |
+| Perairan Dalam | 35 | 30,941 | 25,409 | 8.4 / 8.4 / 14.8 |
+
+FPS ialah GL perisian pada pelayan ujian, bukan telefon.

@@ -24,7 +24,7 @@ export const RARITY_PTS = { biasa: 1, luar: 3, jarang: 6, epik: 12, legenda: 25 
 // spots: where it lives · depth [min,max] m · bait weights · time bonuses · weather bonuses
 // str = pull strength (1 = average), spd = how fast it runs, kg = [min,max], rm = RM per kg, rar = rarity key of RARITY_PTS
 // no freshwater GLBs ship in this repo: the four lake/river species borrow an existing body and get their own painted skin (fishskin.js)
-export const BODY_OF = { Tilapia: 'fish_Kerisi', Keli: 'fish_Senangin', Haruan: 'fish_Alu', Sebarau: 'fish_Selar_Kuning' };
+export const BODY_OF = { Tilapia: 'fish_Kerisi', Keli: 'fish_Senangin', Haruan: 'fish_Alu-Alu', Sebarau: 'fish_Selar_Kuning' };
 const F = (id, bm, en, rar, spots, depth, kg, rm, bait, time, weather, str, spd) => ({ id, bm, en, model: BODY_OF[id] || 'fish_' + id, rar, spots, depth, kg, rm, bait, time, weather, str, spd });
 export const KAIL_FISH = [
   F('Tilapia', 'Ikan Tilapia', 'Tilapia', 'biasa', ['tasik'], [0, 6], [.2, 1.2], 8, { cacing: 1, udang: .5, umpan: .2, gewang: .2 }, { day: 1.2 }, { cerah: 1.1 }, .5, .8),

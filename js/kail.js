@@ -9,8 +9,8 @@ import * as R from './fishrules.js';
 
 // colours per spot (docs/kail_style.json)
 const STY = {
-  tasik: { top: 0x6f9fd0, bot: 0xffd9a8, water: 0x4f9d8f, ground: 0x3f7a58, accent: 0xe58fb0, op: .9, cast: [.3, -6], sunC: 0xffdcae, discC: 0xffefc8, sunI: 2.0, hemiI: 1.7, hemiC: 0xfff0dc, sunAt: [-26, 22], lamp: 0 },
-  sungai: { top: 0x4a3f7a, bot: 0xff8f52, water: 0x5c6f78, ground: 0x4a6b3a, accent: 0xffb347, op: .93, cast: [.3, -6.5], sunC: 0xffa25e, discC: 0xfff0c0, sunI: 2.9, hemiI: 1.25, hemiC: 0xffd2b0, sunAt: [20, 12], lamp: 16 },
+  tasik: { top: 0x6f9fd0, bot: 0xffd9a8, water: 0x4f9d8f, ground: 0x3f7a58, accent: 0xe58fb0, op: .9, cast: [.3, -6], sunC: 0xffd9a6, discC: 0xffe9b8, cloud: 0xfff1dc, sunI: 2.1, hemiI: 1.55, hemiC: 0xfff0dc, sunAt: [-26, 22], lamp: 0 },
+  sungai: { top: 0x4a3f7a, bot: 0xff8f52, water: 0x5c6f78, ground: 0x4a6b3a, accent: 0xffb347, op: .93, cast: [.3, -6.5], sunC: 0xff9a58, discC: 0xffd9a0, cloud: 0xffb48a, sunI: 2.6, hemiI: 1.3, hemiC: 0xffd2b0, sunAt: [20, 12], lamp: 16 },
   terumbu: { top: 0x2f93d6, bot: 0x9fdcf0, water: 0x1fa9bd, ground: 0xefdcaa, accent: 0xff7a59, op: .7, cast: [.9, -7], sunC: 0xfff6e0, sunI: 2.6, hemiI: 1.9, hemiC: 0xffffff },
   dalam: { top: 0x2c68ad, bot: 0xa9cdea, water: 0x0f4f86, ground: 0x5a6672, accent: 0xf1c40f, op: .9, cast: [.9, -8], sunC: 0xfff1d6, sunI: 2.4, hemiI: 1.8, hemiC: 0xffffff },
 };
@@ -40,10 +40,12 @@ export function kailScene({ T, environment, Sparks, palm, stiltHouse, putModel, 
     const dome = new T.Mesh(domeG, new T.MeshBasicMaterial({ vertexColors: true, side: T.BackSide, fog: false, depthWrite: false })); dome.position.set(0, -6, -10); dome.renderOrder = -3; dome.frustumCulled = false; scene.add(dome);
     const cA = new T.Color(), cB = new T.Color(), cC = new T.Color();
     function setSky(top, bot) { const p = domeG.attributes.position, c = domeG.attributes.color; cA.set(top); cB.set(bot); for (let i = 0; i < p.count; i++) { const k = Math.pow(clamp((p.getY(i) / 165 + .02) / .55, 0, 1), .65); cC.copy(cB).lerp(cA, k); c.setXYZ(i, cC.r, cC.g, cC.b); } c.needsUpdate = true; }
-    const sunDisc = new T.Mesh(new T.CircleGeometry(5, 28), new T.MeshBasicMaterial({ color: 0xfff2c8, fog: false, depthWrite: false })), sunGlow = new T.Mesh(new T.CircleGeometry(20, 28), new T.MeshBasicMaterial({ color: 0xffb060, fog: false, transparent: true, opacity: .32, depthWrite: false, blending: T.AdditiveBlending }));
+    const sunDisc = new T.Mesh(new T.CircleGeometry(5, 28), new T.MeshBasicMaterial({ color: 0xfff2c8, fog: false, depthWrite: false })), blobT = (() => { const c = K.canvasTex(128, 128), gr = c.x.createRadialGradient(64, 64, 0, 64, 64, 64); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(.25, 'rgba(255,255,255,.55)'); gr.addColorStop(.6, 'rgba(255,255,255,.14)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); c.x.fillStyle = gr; c.x.fillRect(0, 0, 128, 128); c.t.needsUpdate = true; return c.t; })(), sunGlow = new T.Mesh(new T.PlaneGeometry(90, 90), new T.MeshBasicMaterial({ map: blobT, color: 0xffb060, fog: false, transparent: true, opacity: .7, depthWrite: false, blending: T.AdditiveBlending }));
+    const cloudT = (() => { const c = K.canvasTex(256, 96), x = c.x, g = mulberry32(5); for (let i = 0; i < 16; i++) { const cx = 30 + g() * 196, cy = 40 + g() * 26, rr = 18 + g() * 26, gr = x.createRadialGradient(cx, cy, 0, cx, cy, rr); gr.addColorStop(0, 'rgba(255,255,255,.55)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = gr; x.fillRect(cx - rr, cy - rr, rr * 2, rr * 2); } c.t.needsUpdate = true; return c.t; })();
+    const clouds = Array.from({ length: 7 }, (_, i) => { const g = mulberry32(i * 37 + 3), m = new T.Mesh(new T.PlaneGeometry(70 + g() * 50, 16 + g() * 12), new T.MeshBasicMaterial({ map: cloudT, transparent: true, opacity: .8, fog: false, depthWrite: false })); m.position.set(-130 + i * 44 + g() * 20, 24 + g() * 34, -156); m.renderOrder = -1; m.userData.vx = .25 + g() * .35; scene.add(m); return m; });
     sunGlow.renderOrder = -2; sunDisc.renderOrder = -1; scene.add(sunGlow, sunDisc);
     const gl = K.canvasTex(64, 256); { const x = gl.x, gr = mulberry32(77); for (let i = 0; i < 260; i++) { const y = gr() * 256, k = y / 256, w = 3 + gr() * (6 + k * 34); x.fillStyle = `rgba(255,${200 + Math.floor(gr() * 40)},${130 + Math.floor(gr() * 60)},${(.75 - k * .5) * (.4 + gr() * .6)})`; x.fillRect(32 - w / 2 + (gr() - .5) * (4 + k * 22), y, w, 1 + gr() * 1.6); } gl.t.wrapT = T.RepeatWrapping; gl.t.needsUpdate = true; }
-    const glitterG = new T.Group(), glitter = new T.Mesh(new T.PlaneGeometry(7, 120), new T.MeshBasicMaterial({ map: gl.t, transparent: true, depthWrite: false, blending: T.AdditiveBlending, fog: false })); glitter.rotation.x = -Math.PI / 2; glitterG.add(glitter); scene.add(glitterG);
+    const glitterG = new T.Group(), glitter = new T.Mesh(new T.PlaneGeometry(5, 120), new T.MeshBasicMaterial({ map: gl.t, transparent: true, depthWrite: false, blending: T.AdditiveBlending, fog: false })); glitter.rotation.x = -Math.PI / 2; glitterG.add(glitter); scene.add(glitterG);
     const waterG = new T.PlaneGeometry(260, 220, 44, 40); waterG.rotateX(-Math.PI / 2);
     const wBase = Float32Array.from(waterG.attributes.position.array), waterM = new T.MeshStandardMaterial({ color: STY.tasik.water, roughness: .22, metalness: .15, transparent: true, opacity: .92 });
     const water = new T.Mesh(waterG, waterM); water.position.set(0, 0, -70); water.receiveShadow = true; scene.add(water);
@@ -56,7 +58,7 @@ export function kailScene({ T, environment, Sparks, palm, stiltHouse, putModel, 
     const coarse = typeof matchMedia === 'function' && matchMedia('(pointer:coarse)').matches;
     let gq = GFX[S.gfxQ] ? S.gfxQ : coarse ? 'med' : 'high', wantPR = 1;
     const RD = api.renderer, prev = RD ? { tm: RD.toneMapping, ex: RD.toneMappingExposure } : null;
-    if (RD) { RD.toneMapping = T.ACESFilmicToneMapping; RD.toneMappingExposure = 1.12; }
+    if (RD) { RD.toneMapping = T.ACESFilmicToneMapping; RD.toneMappingExposure = 1; }
     // procedural textures (512 px or less): timber planks, roof tiles, water ripples (normal map)
     const texRep = (t, x, y) => { t.wrapS = t.wrapT = T.RepeatWrapping; t.repeat.set(x, y); t.needsUpdate = true; return t; };
     const woodT = (() => { const c = K.canvasTex(256, 256), x = c.x, g = mulberry32(11); x.fillStyle = '#c9b89e'; x.fillRect(0, 0, 256, 256);
@@ -72,7 +74,7 @@ export function kailScene({ T, environment, Sparks, palm, stiltHouse, putModel, 
       const hgt = (u, v) => { let s2 = 0; for (const [a, b, ph, am] of W) s2 += Math.sin((u * a + v * b) * 6.2832 + ph) * am / (a + b); return s2; };
       for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) { const u = i / N, v = j / N, e = 1 / N, dx = (hgt(u + e, v) - hgt(u - e, v)) * 5, dy = (hgt(u, v + e) - hgt(u, v - e)) * 5, l = Math.hypot(dx, dy, 1), o = (j * N + i) * 4; im.data[o] = (-dx / l * .5 + .5) * 255; im.data[o + 1] = (-dy / l * .5 + .5) * 255; im.data[o + 2] = (1 / l * .5 + .5) * 255; im.data[o + 3] = 255; }
       x.putImageData(im, 0, 0); const t = new T.CanvasTexture(cv); t.anisotropy = 4; return texRep(t, 58, 50); })();
-    waterM.normalMap = nrmT; waterM.roughness = .14; waterM.metalness = .3; waterM.envMapIntensity = .6;
+    waterM.normalMap = nrmT; waterM.roughness = .34; waterM.metalness = 0; waterM.envMapIntensity = .35;
     const own = (m) => { m.userData.own = true; return m; };
     const woodMat = (col, rx, ry, o = {}) => { const t = woodT.clone(); texRep(t, rx, ry); return own(new T.MeshStandardMaterial({ color: col, map: t, roughness: .78, ...o })); };
     // image-based lighting from the sky gradient, so water and wet timber pick up the sky colour
@@ -87,7 +89,7 @@ export function kailScene({ T, environment, Sparks, palm, stiltHouse, putModel, 
     let dress = null, spot = R.spotById(kail.spot), anglerG = null, boatBob = null;
     function clearDress() {
       if (!dress) return; scene.remove(dress);
-      dress.traverse((o) => { if (o.geometry && !isShared(o.geometry)) o.geometry.dispose(); if (o.material && o.material.userData && o.material.userData.own) { if (o.material.map) o.material.map.dispose(); o.material.dispose(); } }); dress = null; boatBob = null;
+      dress.traverse((o) => { if (o.geometry && !isShared(o.geometry) && !o.geometry.userData.keepGeo) o.geometry.dispose(); if (o.material && o.material.userData && o.material.userData.own) { if (o.material.map) o.material.map.dispose(); o.material.dispose(); } }); dress = null; boatBob = null;
     }
     const glowM = () => K.mat(0xffd27a, { emissive: 0xffa030, emissiveIntensity: 1.8 });
     // seated angler: songkok, cream shirt, checked sampin, white shoes, folding stool. Origin = deck surface under the stool.
@@ -119,8 +121,9 @@ export function kailScene({ T, environment, Sparks, palm, stiltHouse, putModel, 
       // far bank, kampung on stilts with lit windows, palms, hills
       const bankC = id === 'sungai' ? 0x2c3a2a : 0x3c6a48; K.box(260, 1.4, 50, K.mat(bankC, { roughness: 1 }), 0, -.35, -84, dress, false);
       const walls = [0xc48a58, 0x9fb7a6, 0xd9c29a, 0xb98a6a, 0x8fa9b8], roofs = [0x8a3f2c, 0x6b3a2a, 0x9d4a33];
-      for (let i = 0; i < 6; i++) { const x = -62 + i * 11.5 + r() * 2, z = -50 - r() * 4; { const hs = stiltHouse(K, dress, x, z, { wall: walls[i % 5], roof: roofs[i % 3], w: 8 + r() * 2 }), wm = woodMat(walls[i % 5], 3, 2), rm = roofM(roofs[i % 3] + 0x202020); hs.traverse((o) => { if (!o.isMesh) return; const hx = o.material.color.getHex(); if (hx === walls[i % 5]) o.material = wm; else if (hx === roofs[i % 3]) o.material = rm; }); } for (const px of [-2.8, 2.8]) K.box(1.1, 1, .06, glowM(), x + px, 1.6 + 3.2 * .55, z + 3.09, dress, false); K.box(11, .2, 2.2, dark, x, 1.5, z + 4.2, dress, false); }
-      for (let i = 0; i < 16; i++) palm(K, dress, -75 + i * 9.5 + r() * 5, -58 - r() * 10, 1.5 + r() * .7, r);
+      const HM = { walls: [woodMat(0xc9935f, 3, 2), woodMat(0xa9bfae, 3, 2), woodMat(0xe0c79c, 3, 2), woodMat(0x9a6f4c, 3, 2)], roofs: [roofM(0xb0563c), roofM(0x8a4a38), roofM(0x6f5a4c)], trim: K.mat(0xf1e6cf, { roughness: .8 }), dark, shutter: K.mat(id === 'sungai' ? 0x3e5a52 : 0x4f7a6a, { roughness: .8 }), glow: id === 'sungai' ? glowM() : K.mat(0x2b3a40, { roughness: .3, metalness: .2 }) };
+      { let hx = -70; for (let i = 0; i < 6; i++) { hx += 11 + r() * 5; kampungHouse(hx, -50 - r() * 7, r, HM, i); } }
+      for (let i = 0; i < 20; i++) palm2(-82 + i * 8.6 + r() * 6, -60 - r() * 13, 1.15 + r() * .75); for (const [px, pz] of [[-13, 9], [-15.5, 2], [9, 11]]) palm2(px, pz, 1.2 + r() * .3);
       const hillM = K.mat(id === 'sungai' ? 0x4a4460 : 0x5f8a80, { roughness: 1 });
       for (let i = 0; i < 7; i++) { const h = K.mesh(new T.SphereGeometry(16 + r() * 12, 14, 8), hillM, -90 + i * 30 + r() * 8, -5, -112 - r() * 14, dress, false); h.scale.y = .38 + r() * .3; }
       boatAt(10, -24, .5, 4.6); boatAt(-13, -32, -1.1, 4, 0xe74c3c); boatAt(20, -46, 1.9, 5, 0x27ae60);
@@ -133,10 +136,65 @@ export function kailScene({ T, environment, Sparks, palm, stiltHouse, putModel, 
         for (let i = 0; i < 10; i++) K.cyl(.03, .03, 1.4 + r(), K.mat(0x5d8a3a), 3 + r() * 5, .5, 7 + r() * 4, dress, 4);
       }
     }
+    // ---------------------------------------------------------------- coconut palms: curved tapered trunk + feathered, drooping fronds.
+    // Three shape variants, drawn with instancing (2 draw calls per variant however many palms there are).
+    const frondT = (() => { const c = K.canvasTex(64, 256), x = c.x, g = mulberry32(23); x.clearRect(0, 0, 64, 256);
+      for (let y = 2; y < 250; y += 5) { const k = y / 256, w = 31 * Math.pow(Math.sin(Math.PI * Math.pow(k, .75)), .6), sh = 70 + Math.floor(g() * 50), len = 13 + k * 6;
+        for (const s of [-1, 1]) { x.fillStyle = `rgb(${Math.floor(sh * .55)},${sh + 55},${Math.floor(sh * .5)})`; x.beginPath(); x.moveTo(32, y); x.lineTo(32 + s * w, y + len); x.lineTo(32 + s * w * .2, y + 6.2); x.lineTo(32, y + 4.4); x.fill(); } }
+      x.fillStyle = '#b9c46a'; x.fillRect(31, 0, 2, 250); return c.t; })();
+    const frondM = new T.MeshStandardMaterial({ map: frondT, alphaTest: .45, side: T.DoubleSide, roughness: .75 }), trunkM = new T.MeshStandardMaterial({ vertexColors: true, roughness: .92 });
+    function palmGeo(seed) {
+      const g = mulberry32(seed), geoOf = (P, U, I, C) => { const q = new T.BufferGeometry(); q.setAttribute('position', new T.Float32BufferAttribute(P, 3)); q.setAttribute('uv', new T.Float32BufferAttribute(U, 2)); if (C) q.setAttribute('color', new T.Float32BufferAttribute(C, 3)); q.setIndex(I); q.computeVertexNormals(); q.userData.keepGeo = true; return q; };
+      const H = 5.2 + g() * 2.4, bend = .5 + g() * 1.3, RS = 7, ST = 9, P = [], U = [], I = [], C = [];
+      for (let i = 0; i <= ST; i++) { const t = i / ST, y = t * H, cx = bend * t * t, rad = .26 * (1 - t * .58) + (i === 0 ? .1 : 0), sh = i % 2 ? .8 : 1; for (let k = 0; k <= RS; k++) { const a = k / RS * 6.2832; P.push(cx + Math.cos(a) * rad, y, Math.sin(a) * rad); U.push(k / RS, t * 6); C.push(.5 * sh, .4 * sh, .3 * sh); } }
+      for (let i = 0; i < ST; i++) for (let k = 0; k < RS; k++) { const a = i * (RS + 1) + k, b = a + RS + 1; I.push(a, b, a + 1, a + 1, b, b + 1); }
+      for (let n = 0; n < 4; n++) { const a0 = n * 1.7 + g(), ox = bend + Math.cos(a0) * .26, oz = Math.sin(a0) * .26, oy = H - .28, base = P.length / 3, R2 = .17; // coconuts (octahedra)
+        for (const [dx, dy, dz] of [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]]) { P.push(ox + dx * R2, oy + dy * R2, oz + dz * R2); U.push(0, 0); C.push(.35, .42, .16); }
+        for (const [a, b, c2] of [[0, 2, 4], [4, 2, 1], [1, 2, 5], [5, 2, 0], [4, 3, 0], [1, 3, 4], [5, 3, 1], [0, 3, 5]]) I.push(base + a, base + b, base + c2); }
+      const trunk = geoOf(P, U, I, C), FP = [], FU = [], FI = [], nF = 11 + Math.floor(g() * 3), SEG = 7;
+      for (let f = 0; f < nF; f++) { const yaw = f / nF * 6.2832 + g() * .5, lift = [.62, .2, -.22][f % 3] + (g() - .5) * .28, L = 2.7 + g() * 1, W = .5 + g() * .14, cs = Math.cos(yaw), sn = Math.sin(yaw), base = FP.length / 3;
+        for (let i = 0; i <= SEG; i++) { const t = i / SEG, rr = Math.cos(lift) * t * L * (1 - .12 * t), yy = Math.sin(lift) * t * L - .44 * t * t * L, e = -.16 * W - .1 * W * t;
+          for (const s of [-1, 0, 1]) { const lx = s * W, ly = yy + (s ? e : 0); FP.push(bend + lx * cs + rr * sn, H - .05 + ly, -lx * sn + rr * cs); FU.push(.5 + s * .5, 1 - t); } }
+        for (let i = 0; i < SEG; i++) { const a = base + i * 3; FI.push(a, a + 1, a + 4, a, a + 4, a + 3, a + 1, a + 2, a + 5, a + 1, a + 5, a + 4); } }
+      return { trunk, frond: geoOf(FP, FU, FI, null) };
+    }
+    const PALMS = [palmGeo(31), palmGeo(47), palmGeo(59)]; let palmList = [];
+    const palm2 = (x, z, s = 1) => palmList.push([x, z, s]);
+    function flushPalms(r) {
+      const m4 = new T.Matrix4(), q = new T.Quaternion(), pv = v3(), sv = v3();
+      for (let v = 0; v < 3; v++) { const L = palmList.filter((_, i) => i % 3 === v); if (!L.length) continue;
+        for (const [geo, mat] of [[PALMS[v].trunk, trunkM], [PALMS[v].frond, frondM]]) { const im = new T.InstancedMesh(geo, mat, L.length); im.castShadow = true; im.receiveShadow = false; im.frustumCulled = false;
+          L.forEach(([x, z, s], i) => { const rr = mulberry32(Math.floor(x * 13 + z * 7 + 99))(); q.setFromAxisAngle(UP, rr * 6.2832); pv.set(x, -.15, z); sv.set(s, s * (.9 + rr * .25), s); im.setMatrixAt(i, m4.compose(pv, q, sv)); }); im.instanceMatrix.needsUpdate = true; dress.add(im); } }
+      palmList = []; void r;
+    }
+    // ---------------------------------------------------------------- kampung house on stilts: steep gable roof with barge boards (papan pemeleh),
+    // serambi with railing and stairs, shuttered windows, optional kitchen annex (rumah dapur). Built from shared materials, then merged.
+    function gableRoof(parent, mat, w, halfD, rh, x, y, z) { const gq2 = new T.CylinderGeometry(1, 1, w, 3, 1); gq2.rotateZ(Math.PI / 2); gq2.rotateX(-Math.PI / 2); gq2.scale(1, rh / 1.5, halfD / .866); return K.mesh(gq2, mat, x, y + rh / 3, z, parent); }
+    function kampungHouse(x, z, r, HM, i) {
+      const g = K.group(x, 0, z, dress); g.rotation.y = (r() - .5) * .22; const w = 7.5 + r() * 3.5, d = 5.6 + r() * 1, st = 1.5 + r() * .5, h = 2.9 + r() * .3, wallM = HM.walls[i % HM.walls.length], roofMt = HM.roofs[i % HM.roofs.length], trim = HM.trim, dark = HM.dark, top = st + h, rh = 2.3 + r() * .6, hd = d / 2 + .8;
+      for (let px = 0; px < 4; px++) for (const pz of [-d / 2 + .3, d / 2 - .3]) K.cyl(.13, .15, st, dark, -w / 2 + .35 + px * (w - .7) / 3, st / 2, pz, g, 6);
+      K.box(w + .5, .22, d + .5, dark, 0, st, 0, g); K.box(w, h, d, wallM, 0, st + h / 2 + .1, 0, g);
+      gableRoof(g, roofMt, w + 1.5, hd, rh, 0, top + .1, 0);
+      const sl = Math.hypot(hd, rh), ang = Math.atan2(rh, hd); for (const ex of [-(w + 1.5) / 2, (w + 1.5) / 2]) for (const s of [-1, 1]) { const b = K.box(.1, .22, sl + .25, trim, ex, top + .12 + rh / 2, s * hd / 2, g); b.rotation.x = s * ang; }
+      for (const ex of [-(w + 1.5) / 2, (w + 1.5) / 2]) K.box(.12, .7, .12, trim, ex, top + rh + .35, 0, g);
+      const nW = w > 9.5 ? 3 : 2, door = (r() < .5 ? -1 : 1) * w * .28;
+      for (let k = 0; k < nW; k++) { const wx = -w / 2 + (k + .8) * w / (nW + .6); if (Math.abs(wx - door) < 1.3) continue; K.box(1.3, 1.45, .08, trim, wx, st + h * .56, d / 2 + .02, g); K.box(1.05, 1.2, .06, HM.glow, wx, st + h * .56, d / 2 + .06, g, false); for (const s of [-1, 1]) { const sh = K.box(.5, 1.2, .05, HM.shutter, wx + s * .78, st + h * .56, d / 2 + .16, g); sh.rotation.y = s * .5; } K.box(1.4, .08, .22, dark, wx, st + h * .56 - .78, d / 2 + .1, g); }
+      K.box(1.25, 2.15, .08, trim, door, st + 1.2, d / 2 + .02, g); K.box(1.02, 1.95, .08, HM.shutter, door, st + 1.12, d / 2 + .06, g);
+      // serambi + stairs
+      const sw = w * .62, sx = door * .6; K.box(sw, .18, 2.1, dark, sx, st, d / 2 + 1.05, g); for (const px of [-sw / 2 + .12, sw / 2 - .12]) { K.cyl(.09, .1, st, dark, sx + px, st / 2, d / 2 + 1.95, g, 6); K.cyl(.07, .07, 2.3, dark, sx + px, st + 1.15, d / 2 + 1.95, g, 6); }
+      K.box(sw, .08, .08, trim, sx, st + .95, d / 2 + 2.02, g); for (let k = 0; k < 7; k++) { const bx = sx - sw / 2 + .3 + k * (sw - .6) / 6; if (Math.abs(bx - door) < .7) continue; K.box(.06, .9, .06, trim, bx, st + .5, d / 2 + 2.02, g); }
+      const lean = K.box(sw + .5, .1, 2.6, roofMt, sx, st + 2.45, d / 2 + 1.15, g); lean.rotation.x = .28;
+      for (let k = 0; k < 4; k++) K.box(1.1, .12, .34, dark, door, st - .2 - k * (st / 4.4), d / 2 + 2.3 + k * .34, g);
+      if (i % 3 !== 1) { const aw = w * .45, ad = d * .7, ax = (i % 2 ? 1 : -1) * (w / 2 + aw / 2 - .1), ah = h * .82; // rumah dapur
+        for (const pz of [-ad / 2 + .25, ad / 2 - .25]) K.cyl(.12, .14, st, dark, ax + (i % 2 ? 1 : -1) * (aw / 2 - .3), st / 2, pz - .6, g, 6);
+        K.box(aw, ah, ad, HM.walls[(i + 1) % HM.walls.length], ax, st + ah / 2 + .1, -.6, g); gableRoof(g, HM.roofs[(i + 1) % HM.roofs.length], aw + 1, ad / 2 + .6, rh * .7, ax, st + ah + .1, -.6);
+        K.box(.95, 1.1, .08, trim, ax, st + ah * .58, ad / 2 - .58, g); K.box(.75, .9, .06, HM.glow, ax, st + ah * .58, ad / 2 - .54, g, false); }
+      return g;
+    }
     // merge the static dressing into one mesh per material (hundreds of draw calls -> a few dozen)
     function mergeStatic(root) {
       root.updateMatrixWorld(true); const by = new Map(), gone = [];
-      root.traverse((o) => { if (!o.isMesh || !o.geometry || isShared(o.geometry) || Array.isArray(o.material)) return; const a = o.geometry.attributes; if (!a.position || !a.normal || !a.uv) return;
+      root.traverse((o) => { if (!o.isMesh || o.isInstancedMesh || !o.geometry || isShared(o.geometry) || Array.isArray(o.material)) return; const a = o.geometry.attributes; if (!a.position || !a.normal || !a.uv) return;
         for (let q = o.parent; q; q = q.parent) if (q === boatBob || q.userData.keep) return; let L = by.get(o.material); if (!L) by.set(o.material, L = []); L.push(o); });
       for (const [mat, list] of by) { if (list.length < 2) continue; let n = 0; const parts = list.map((o) => { const g = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone(); g.applyMatrix4(o.matrixWorld); n += g.attributes.position.count; return g; });
         const P = new Float32Array(n * 3), N = new Float32Array(n * 3), U = new Float32Array(n * 2); let k = 0;
@@ -147,10 +205,11 @@ export function kailScene({ T, environment, Sparks, palm, stiltHouse, putModel, 
     }
     function buildSpot(id) {
       clearDress(); spot = R.spotById(id); const st = STY[id], r = mulberry32(id.length * 977 + 5); dress = new T.Group(); scene.add(dress);
-      scene.background.set(st.bot); scene.fog.color.set(st.bot); setSky(st.top, st.bot); waterM.color.set(st.water); waterM.opacity = st.op; if (ocean) { cA.set(st.water); ocean.uniforms.uShallow.value.copy(cA).lerp(cB.set(st.bot), .18); ocean.uniforms.uDeep.value.copy(cA).multiplyScalar(.55); ocean.uniforms.uSky.value.set(st.bot); ocean.uniforms.uAmp.value = id === 'dalam' ? .22 : id === 'terumbu' ? .14 : .08; ocean.mat.opacity = Math.max(st.op, .8); ocean.mat.transparent = true; }
+      scene.background.set(st.bot); scene.fog.color.set(st.bot); setSky(st.top, st.bot); waterM.color.set(st.water); waterM.opacity = st.op; if (ocean) { cA.set(st.water); ocean.uniforms.uShallow.value.copy(cA).lerp(cB.set(st.bot), .1); ocean.uniforms.uDeep.value.copy(cA).multiplyScalar(.42); ocean.mat.roughness = .34; ocean.mat.metalness = 0; ocean.mat.envMapIntensity = .35; ocean.mat.normalScale.set(.42, .42); ocean.uniforms.uSky.value.copy(cA).lerp(cB, id === 'tasik' || id === 'sungai' ? .38 : .6); ocean.uniforms.uAmp.value = id === 'dalam' ? .26 : id === 'terumbu' ? .15 : id === 'sungai' ? .07 : .05; ocean.mat.opacity = Math.max(st.op, .8); ocean.mat.transparent = true; }
       sun.color.set(st.sunC); sun.intensity = st.sunI; updateEnv(); if (hemi) { hemi.intensity = st.hemiI * (scene.environment ? .62 : 1); hemi.color.set(st.hemiC); }
+      for (const c of clouds) c.material.color.set(st.cloud || 0xffffff);
       const lowSun = !!st.sunAt; sunDisc.visible = sunGlow.visible = glitterG.visible = lowSun; lamp.intensity = st.lamp || 0;
-      if (lowSun) { const [sx, sy] = st.sunAt; sunDisc.scale.setScalar(sy > 16 ? .6 : 1); sunGlow.scale.setScalar(sy > 16 ? .6 : 1); sunDisc.position.set(sx, sy, -150); sunGlow.position.set(sx, sy, -151); sunDisc.material.color.set(st.discC); sunGlow.material.color.set(st.sunC); glitter.material.color.set(st.sunC);
+      if (lowSun) { const [sx, sy] = st.sunAt; sunDisc.scale.setScalar(sy > 16 ? .42 : .62); sunGlow.scale.setScalar(sy > 16 ? .7 : 1); sunGlow.material.opacity = sy > 16 ? .5 : .75; sunDisc.position.set(sx, sy, -150); sunGlow.position.set(sx, sy, -151); sunDisc.material.color.set(st.discC); sunGlow.material.color.set(st.sunC); glitter.material.color.set(st.sunC);
         sun.position.set(sx * .35, 8, -26); sun.target.position.set(0, 0, 5); glitterG.position.set(sx * .5 - 1, .09, -52); glitterG.rotation.y = -Math.atan2(sx + 2, 120); }
       else { sun.position.set(-8, 16, 10); sun.target.position.set(0, 0, 0); }
       const onBoat = id === 'terumbu' || id === 'dalam'; let deck = .85;
@@ -164,18 +223,18 @@ export function kailScene({ T, environment, Sparks, palm, stiltHouse, putModel, 
         for (let i = 0; i < 6; i++) { const h = K.mesh(new T.SphereGeometry(14 + r() * 10, 14, 8), hills, -80 + i * 32 + r() * 8, -5, -120 - r() * 14, dress, false); h.scale.y = .4 + r() * .3; }
       }
       const ax = onBoat ? 1.3 : .2, ay = onBoat ? deck : .45, az = onBoat ? 4.6 : 4.4; let hero = null; try { hero = makeHero ? (makeHero(K, M, 1.5, 1.2) || {}).g || null : null; } catch { hero = null; }
-      if (hero) { anglerG = K.group(ax, ay, az, dress); hero.rotation.y = Math.PI; hero.userData.keep = true; anglerG.add(hero); hero.traverse((o) => { if (o.isMesh) o.castShadow = true; }); ROD0.set(ax + .05, ay + 1.02, az - .42); }
+      if (hero) { anglerG = K.group(ax, ay, az, dress); hero.rotation.y = Math.PI; hero.userData.keep = true; anglerG.add(hero); hero.traverse((o) => { if (o.isMesh) o.castShadow = true; }); ROD0.set(ax, ay + .9, az - .3); }
       else { anglerG = makeAngler(dress, ax, ay, az); ROD0.set(ax + .12, ay + .96, az - .52); }
       if (id === 'terumbu') {
         K.box(90, .2, 60, K.mat(st.ground, { roughness: 1 }), 0, -3.2, -20, dress, false);
         const C = ['sea/karang_cabang', 'sea/karang_otak', 'sea/kipas_laut', 'sea/batu_laut'];
         for (let k = 0; k < 16; k++) { const x = (r() - .5) * 26, z = -2 - r() * 22, key = C[k % 4], o = putModel(M, key, dress, x, z, { h: .8 + r() * 1.2, ry: r() * 6, y: -3.1 }); if (!o) K.mesh(new T.IcosahedronGeometry(.5 + r() * .5, 0), K.mat([0xff7a59, 0xf6c445, 0xb36bd4, 0x7f8c8d][k % 4]), x, -2.8, z, dress, false); }
-        const isl = K.mesh(new T.SphereGeometry(12, 14, 8), K.mat(0xefdcaa, { roughness: 1 }), 30, -4, -44, dress, false); isl.scale.y = .42; for (let i = 0; i < 6; i++) palm(K, dress, 24 + r() * 12, -40 - r() * 8, 1.3, r);
+        const isl = K.mesh(new T.SphereGeometry(12, 14, 8), K.mat(0xefdcaa, { roughness: 1 }), 30, -4, -44, dress, false); isl.scale.y = .42; for (let i = 0; i < 7; i++) palm2(23 + r() * 14, -41 - r() * 7, .9 + r() * .5);
       } else if (id === 'dalam') {
-        const isl = K.mesh(new T.SphereGeometry(7, 14, 8), K.mat(0x4f9a43, { roughness: 1 }), 26, -3.6, -48, dress, false); isl.scale.y = .6; palm(K, dress, 26, -48, 1.4, r);
+        const isl = K.mesh(new T.SphereGeometry(7, 14, 8), K.mat(0x4f9a43, { roughness: 1 }), 26, -3.6, -48, dress, false); isl.scale.y = .6; palm2(26, -48, 1.1); palm2(23.5, -47, .85); palm2(28.5, -49.5, .95);
         const b = K.group(-7, 0, -14, dress); K.cyl(.35, .45, 1, K.mat(0xe74c3c), 0, .3, 0, b, 10); K.cyl(.04, .04, 1.6, K.mat(0x333333), 0, 1.4, 0, b, 6); boatAt(-22, -40, .8, 5, 0xf1c40f);
       }
-      mergeStatic(dress);
+      flushPalms(r); mergeStatic(dress);
       F.depth = R.clampDepth(id, kail.depth);
     }
 
@@ -395,7 +454,8 @@ export function kailScene({ T, environment, Sparks, palm, stiltHouse, putModel, 
         if (RD && Math.abs(RD.getPixelRatio() - wantPR) > .01) applyGfx();
         if (ocean && ocean.mesh.visible) ocean.update(t, null);
         else if (GFX[gq].waves && Math.floor(t * 30) % 2 === 0) { const p = waterG.attributes.position; for (let i = 0; i < p.count; i++) { const x = wBase[i * 3], z = wBase[i * 3 + 2]; p.setY(i, Math.sin(x * .3 + t * 1.2) * amp + Math.cos(z * .25 + t * .9) * amp * .7); } p.needsUpdate = true; waterG.computeVertexNormals(); }
-        if (glitterG.visible) { gl.t.offset.y = (t * .035) % 1; glitter.material.opacity = .55 + Math.sin(t * 2.3) * .1; }
+        if (glitterG.visible) { gl.t.offset.y = (t * .035) % 1; glitter.material.opacity = .26 + Math.sin(t * 2.3) * .05; }
+        for (const c of clouds) { c.position.x += c.userData.vx * dt; if (c.position.x > 170) c.position.x = -170; }
         if (boatBob) { boatBob.rotation.z = Math.sin(t * 1.1) * .02; boatBob.position.y = Math.sin(t * 1.4) * .05; }
         const busy = !!F.ui && F.ui !== 'catch', st = STY[spot.id];
         if (!busy) {
