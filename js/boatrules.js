@@ -27,6 +27,7 @@ export function validateConfig(cfg = BOAT) {
       if (!isNum(L.value) || (i > 0 && L.value < d.levels[i - 1].value)) bad.push(`${s} L${i + 1}: value must not fall`);
       if (L.builtin && !(cfg.builtins && cfg.builtins[L.builtin])) bad.push(`${s} L${i + 1}: unknown builtin ${L.builtin}`);
       if (L.offset && L.offset.pos && !vec3(L.offset.pos)) bad.push(`${s} L${i + 1}: offset.pos`);
+      if (L.size && (!vec3(L.size) || L.size.some((v) => v <= 0))) bad.push(`${s} L${i + 1}: size`);
       for (const [rs, rl] of Object.entries(L.requires || {})) { if (!cfg.slots[rs] || rs === s || !(rl >= 1 && rl <= MAX_LEVEL)) bad.push(`${s} L${i + 1}: requires ${rs} ${rl}`); }
     });
   }
@@ -53,6 +54,8 @@ export function botSave(S, cfg = BOAT) {
     if (!o.includes(1)) o.push(1); b.owned[s] = [...new Set(o)].sort((x, y) => x - y);
     const e = b.equipped[s]; if (!Number.isInteger(e) || e < 0 || e > MAX_LEVEL || (e > 0 && !b.owned[s].includes(e))) b.equipped[s] = 1;
   }
+  // engines already paid for in Simulator Pancing Laut (S.sea.engine: 0 = 15 kk, 1 = 30 kk, 2 = 60 kk) are owned here too: never charge twice
+  if (cfg.slots.engine && Number.isInteger(sea.engine) && sea.engine > 0) for (let lv = 2; lv <= Math.min(MAX_LEVEL, sea.engine + 1); lv++) if (!b.owned.engine.includes(lv)) { b.owned.engine.push(lv); b.owned.engine.sort((x, y) => x - y); }
   return b;
 }
 export const owns = (bot, slot, level) => !!(bot.owned[slot] && bot.owned[slot].includes(level));
@@ -66,6 +69,19 @@ export function canBuy(bot, slot, level, balance, cfg = BOAT) {
   if (level > 1 && !owns(bot, slot, level - 1)) return { ok: false, reason: 'order', need: level - 1 };
   if (!(balance >= L.price)) return { ok: false, reason: 'funds', short: L.price - Math.max(0, balance || 0) };
   return { ok: true, price: L.price, key: partKey(slot, level) };
+}
+// Buy through a wallet ({ balance(), owns(key), spend(amount, why, key) } — js/wallet.js has exactly this shape).
+// A part the wallet already recorded as paid (same one-time key) is handed over without charging again.
+// Returns { ok, charged, restored? } or { ok: false, reason }.
+export function purchase(bot, slot, level, wallet, cfg = BOAT) {
+  const L = levelOf(cfg, slot, level); if (!L) return { ok: false, reason: 'unknown' };
+  if (owns(bot, slot, level)) return { ok: false, reason: 'owned' };
+  if (level > 1 && !owns(bot, slot, level - 1)) return { ok: false, reason: 'order', need: level - 1 };
+  const key = partKey(slot, level);
+  if (wallet.owns(key)) { addOwned(bot, slot, level, cfg); return { ok: true, charged: 0, restored: true }; }
+  const c = canBuy(bot, slot, level, wallet.balance(), cfg); if (!c.ok) return c;
+  const r = wallet.spend(L.price, `bot ${slot} L${level}`, key); if (!r || !r.ok) return { ok: false, reason: (r && r.reason) || 'funds', short: r && r.short };
+  addOwned(bot, slot, level, cfg); return { ok: true, charged: L.price };
 }
 // record a purchase the wallet has already charged
 export function addOwned(bot, slot, level, cfg = BOAT) { if (!levelOf(cfg, slot, level) || owns(bot, slot, level)) return false; bot.owned[slot].push(level); bot.owned[slot].sort((x, y) => x - y); return true; }
@@ -110,12 +126,13 @@ export function anchorFor(slot, level, tune = null, cfg = BOAT) {
   const d = cfg.slots[slot]; if (!d) return null; const L = levelOf(cfg, slot, level) || {}, o = L.offset || {}, t = tune || {};
   return { pos: add3(add3(d.anchor.pos, o.pos || [0, 0, 0]), t.pos || [0, 0, 0]), rot: add3(add3(d.anchor.rot, o.rot || [0, 0, 0]), t.rot || [0, 0, 0]), scale: d.anchor.scale * (o.scale || 1) * (t.scale || 1) };
 }
-// what to draw in each slot: { slot, level, kind: 'empty' | 'builtin' | 'model', model, anchor, size }
+// what to draw in each slot: { slot, level, kind: 'empty' | 'builtin' | 'stock' | 'model', model, anchor, size }
 export function layout(bot, tunes = {}, cfg = BOAT) {
   return Object.keys(cfg.slots).map((s) => { const lv = bot.equipped[s] || 0, L = levelOf(cfg, s, lv);
     if (!L) return { slot: s, level: 0, kind: 'empty' };
     if (L.builtin) return { slot: s, level: lv, kind: 'builtin', builtin: L.builtin };
-    return { slot: s, level: lv, kind: 'model', model: modelId(s, lv), anchor: anchorFor(s, lv, tunes[`${s}:${lv}`], cfg), size: cfg.slots[s].size }; });
+    if (L.stock) return { slot: s, level: lv, kind: 'stock' };
+    return { slot: s, level: lv, kind: 'model', model: modelId(s, lv), anchor: anchorFor(s, lv, tunes[`${s}:${lv}`], cfg), size: L.size || cfg.slots[s].size }; });
 }
 // names of built-in hull parts to hide for this configuration
 export function hiddenBuiltins(bot, cfg = BOAT) {
@@ -141,5 +158,24 @@ const inside = (isl, box) => isl.min.every((v, a) => v >= box[0][a]) && isl.max.
 export function builtinIslands(islands, name, cfg = BOAT) { const b = cfg.builtins && cfg.builtins[name]; return b ? islands.filter((isl, i) => i > 0 && inside(isl, b.box)) : []; }
 // triangle numbers to drop for a list of hidden built-in names
 export function hiddenTriangles(islands, names, cfg = BOAT) { const out = new Set(); for (const n of names) for (const isl of builtinIslands(islands, n, cfg)) for (const t of isl.tris) out.add(t); return out; }
+
+// ------------------------------------------------------------ overlap check (axis-aligned; rotation is ignored, so treat it as a warning)
+// space a component takes in hull units: its origin is the bottom centre of its box
+export function partBox(item) { const [sx, sy, sz] = item.size.map((v) => v * item.anchor.scale), [x, y, z] = item.anchor.pos; return [[x - sx / 2, y, z - sz / 2], [x + sx / 2, y + sy, z + sz / 2]]; }
+const hit = (a, b, eps) => a[0].every((v, i) => v < b[1][i] - eps) && a[1].every((v, i) => v > b[0][i] + eps);
+// components whose box cuts into a visible separate part of the hull (the hull shell itself is not counted: parts are mounted on it).
+// Returns [{ slot, level, parts }] — parts = how many built-in pieces are touched.
+export function overlaps(islands, bot, tunes = {}, cfg = BOAT, eps = .002) {
+  const hidden = new Set(); for (const n of hiddenBuiltins(bot, cfg)) for (const isl of builtinIslands(islands, n, cfg)) hidden.add(isl);
+  const out = [];
+  for (const it of layout(bot, tunes, cfg)) { if (it.kind !== 'model') continue; const box = partBox(it); let n = 0; for (let i = 1; i < islands.length; i++) if (!hidden.has(islands[i]) && hit(box, [islands[i].min, islands[i].max], eps)) n++; if (n) out.push({ slot: it.slot, level: it.level, parts: n }); }
+  return out;
+}
+// two installed components that share space: [[slotA, slotB]]
+export function partClashes(bot, tunes = {}, cfg = BOAT, eps = .002) {
+  const L = layout(bot, tunes, cfg).filter((x) => x.kind === 'model'), out = [];
+  for (let i = 0; i < L.length; i++) for (let j = i + 1; j < L.length; j++) if (hit(partBox(L[i]), partBox(L[j]), eps)) out.push([L[i].slot, L[j].slot]);
+  return out;
+}
 
 export { BOAT, SLOT_KEYS, MAX_LEVEL };

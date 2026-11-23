@@ -748,3 +748,14 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:') {
   const reg = () => navigator.serviceWorker.register('sw.js').catch((e) => console.warn('service worker not registered', e));
   document.readyState === 'complete' ? reg() : addEventListener('load', reg); // main.js awaits on load, so 'load' may have passed
 }
+
+// ---- LIMBUNGAN BOT (bot modular): 3D workshop for the player's boat. Purchases go through the RM wallet inside the scene.
+async function boatYard() {
+  if (ui.busy) return;
+  if (S.gfx === '2d' || !has3D()) return modal({ kicker: '🛠️ LIMBUNGAN BOT', title: 'Perlukan grafik 3D', body: 'Limbungan Bot hanya ada dalam mod 3D. Tukar di Menu → Grafik: 3D. · The Boat Yard needs 3D graphics.', buttons: [['OK', 'ok', true]] });
+  ui.busy = true; audioInit(); wantMusic('laut');
+  try { toast('Memuatkan limbungan…', 'Loading the boat yard…'); await runGame3D('boatyard', {}); }
+  catch (e) { console.warn('boat yard failed', e && e.stack); $('game').hidden = true; $('game').classList.remove('is3d', 'f3mode'); document.querySelectorAll('#game .f3').forEach((el) => el.remove()); toast('Limbungan tidak dapat dibuka', 'The boat yard could not open'); }
+  ui.busy = false; wantMusic('kampung'); save(); hud();
+}
+{ const b = document.createElement('button'); b.id = 'yardBtn'; b.className = 'chip'; b.textContent = '🛠️ Bot'; b.setAttribute('aria-label', 'Limbungan Bot'); b.onclick = () => { sfx.tap(); boatYard(); }; const bar = $('hudB'); if (bar) bar.append(b); }

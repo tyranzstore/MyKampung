@@ -11,6 +11,7 @@ import { jalanDragScene } from './jalandrag.js';
 import { mallScene } from './mall2.js';
 import { volleyScene } from './volley3d.js';
 import { photoScene } from './photo3d.js';
+import { boatYardScene } from './boatyard.js';
 import { volleyCore, photoCore, dragCore, marketCore, mallCore, MALL_ITEMS, ACTIVITIES, POSES, FOODS } from './activities.js';
 
 let T = null, renderer = null;
@@ -135,6 +136,7 @@ export async function runGame3D(kind, opts = {}) {
     const ptr = { x: 0, y: 0, lx: 0, ly: 0, mv: 0, sx: 0, sy: 0, sh: 1, down: false, on: false, hit: null };
     const bar = progressBar(); let finishing = false, shotCb = null;
     const api = {
+      get renderer() { return renderer; }, // scenes may tune tone mapping / pixel ratio; they must restore it in stop()
       capture(cb) { shotCb = cb; },
       step(bm, en) { $('gStep').innerHTML = ''; $('gStep').append(bm); const s = document.createElement('small'); s.textContent = en; $('gStep').append(s); },
       progress(f) { bar.progress(f); },
@@ -144,10 +146,10 @@ export async function runGame3D(kind, opts = {}) {
       isPaused: () => !!pauseAt,
       finish(result) { if (!alive) return; const time = api.elapsed(); bar.full(); finishing = true; setTimeout(() => { if (!alive) return; alive = false; cleanup(); resolve({ ...result, time }); }, 700); },
     };
-    $('gTitle').textContent = ({ grass: 'Tebas Laman', repair: 'Baiki Rumah', carwash: 'Cuci Kereta', padi: 'Tuai Padi', boat: 'Baiki Bot', fish: 'Memancing', beach: 'Bersih Pantai', futsal3v3: 'Perlawanan 3v3 · Futsal', seafish: 'Simulator Pancing Laut', jalandrag: 'Jalan Drag' }[kind] || (ACTIVITIES[kind] || {}).title);
+    $('gTitle').textContent = ({ grass: 'Tebas Laman', repair: 'Baiki Rumah', carwash: 'Cuci Kereta', padi: 'Tuai Padi', boat: 'Baiki Bot', fish: 'Memancing', beach: 'Bersih Pantai', futsal3v3: 'Perlawanan 3v3 · Futsal', seafish: 'Simulator Pancing Laut', jalandrag: 'Jalan Drag', boatyard: 'Limbungan Bot' }[kind] || (ACTIVITIES[kind] || {}).title);
     $('gTools').innerHTML = ''; bar.reset();
     const K = kit();
-    const game = { grass: Grass3D, repair: Repair3D, carwash: CarWash3D, padi: Padi3D, boat: Boat3D, fish: Fish3D, beach: Beach3D, futsal: Futsal3D, volley: VolleyV2, photo: PhotoV2, drag: Drag3D, market: Market3D, mall: MallV2, futsal3v3: Futsal3v3_3D, seafish: SeaFish3D, jalandrag: JalanDrag3D }[kind](K, api, opts, M);
+    const game = { grass: Grass3D, repair: Repair3D, carwash: CarWash3D, padi: Padi3D, boat: Boat3D, fish: Fish3D, beach: Beach3D, futsal: Futsal3D, volley: VolleyV2, photo: PhotoV2, drag: Drag3D, market: Market3D, mall: MallV2, futsal3v3: Futsal3v3_3D, seafish: SeaFish3D, jalandrag: JalanDrag3D, boatyard: BoatYard3D }[kind](K, api, opts, M);
     window.__mg = game; setupHelp(kind, api); const unHide = pauseWhenHidden(api);
     const camera = new T.PerspectiveCamera(50, 1, .1, 200);
     const curPos = game.view.pos.clone(), curLook = game.view.look.clone();
@@ -1771,6 +1773,8 @@ function VolleyV2(K, api, opts, M = {}) { return futSafe(() => vb2()(K, api, opt
 let PH2 = null; const ph2 = () => PH2 || (PH2 = photoScene({ T, environment, Sparks, palm, stiltHouse, bridgeFar, putModel, putAnimated, makeOcean, shoreWaves, textPlane, mulberry32 }));
 function PhotoV2(K, api, opts, M = {}) { return futSafe(() => ph2()(K, api, opts, M)); } // 3D photo simulator v2 (old Photo3D kept below)
 function JalanDrag3D(K, api, opts, M = {}) { return futSafe(() => jd()(K, api, opts, M)); }
+let BY = null; const by = () => BY || (BY = boatYardScene({ T, environment, makeOcean, palm, mulberry32 }));
+function BoatYard3D(K, api, opts, M = {}) { return futSafe(() => by()(K, api, opts, M)); } // Limbungan Bot (bot modular)
 function SeaFish3D(K, api, opts, M = {}) { return futSafe(() => sea()(K, api, opts, M)); }
 function Futsal3D(K, api, opts, M = {}) { return futSafe(() => fut().penalty(K, api, opts, M)); }
 function Futsal3v3_3D(K, api, opts, M = {}) { return futSafe(() => fut().match(K, api, opts, M)); }

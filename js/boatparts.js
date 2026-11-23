@@ -8,7 +8,9 @@
 // marked placeholder box of the slot's `size`. No config change is needed when a real GLB arrives.
 //
 // anchor: { pos: [x, y, z], rot: [rx, ry, rz] in degrees, scale } — where the component's origin sits on the hull.
-// A level may add `offset` (same shape) on top of its slot anchor. Fine-tune both in the Boat Yard's adjust mode.
+// A level may add `offset` (same shape) on top of its slot anchor, and its own placeholder `size`.
+// Level flags: builtin: '<name>' = the part moulded into the hull is used; stock: true = nothing is added (the hull as delivered).
+// Prices (RM) and values are plain numbers here: change them freely for balancing; tests only require level 1 free and rising prices. Fine-tune both in the Boat Yard's adjust mode.
 export const BOAT = {
   version: 1,
   hull: { id: 'hull_lv1', model: 'bot/hull_lv1', lengthM: 5.2, bow: '+x', bm: 'Badan Bot Lv1', en: 'Boat hull Lv1' },
@@ -16,15 +18,15 @@ export const BOAT = {
   // Parts moulded into the hull GLB that are separate "islands" of triangles, so the builder can hide them at load time
   // without touching the file. box = [[minX, minY, minZ], [maxX, maxY, maxZ]]: every island that lies fully inside is hidden.
   // shownAt: the built-in part is shown only while that slot is at exactly this level (level 1 = the factory part).
+  // The padded panel and rail above the console are permanent (owner decision): they are NOT listed here, so nothing hides them.
   builtins: {
     wheel: { bm: 'Stereng asal', en: 'Factory wheel', slot: 'steering', shownAt: 1, box: [[-.2, .19, -.058], [-.1, .31, .05]] },
-    seatBack: { bm: 'Sandar asal', en: 'Factory backrest', slot: 'seat', shownAt: 1, box: [[-.095, .255, -.07], [-.045, .36, .07]] },
   },
 
   slots: {
     engine: {
-      bm: 'Enjin', en: 'Engine', ic: '⚙️', stat: 'speed', unit: 'm/s',
-      anchor: { pos: [-.52, .2, 0], rot: [0, 0, 0], scale: 1 }, size: [.12, .2, .1],
+      bm: 'Enjin', short: 'Enjin', en: 'Engine', ic: '⚙️', stat: 'speed', unit: 'm/s',
+      anchor: { pos: [-.548, .02, 0], rot: [0, 0, 0], scale: 1 }, size: [.09, .3, .1],
       levels: [
         { bm: 'Enjin 15 kk', en: '15 hp outboard', price: 0, value: 7 },
         { bm: 'Enjin 30 kk', en: '30 hp outboard', price: 600, value: 9 },
@@ -33,8 +35,8 @@ export const BOAT = {
       ],
     },
     steering: {
-      bm: 'Stereng', en: 'Steering', ic: '🛞', stat: 'turn', unit: '×',
-      anchor: { pos: [-.165, .258, -.006], rot: [0, 0, 0], scale: 1 }, size: [.05, .09, .09],
+      bm: 'Stereng', short: 'Stereng', en: 'Steering', ic: '🛞', stat: 'turn', unit: '×',
+      anchor: { pos: [-.17, .215, -.006], rot: [0, 0, 0], scale: 1 }, size: [.05, .085, .095],
       levels: [
         { bm: 'Stereng asal', en: 'Factory wheel', price: 0, value: 1, builtin: 'wheel' },
         { bm: 'Stereng sukan', en: 'Sport wheel', price: 350, value: 1.15 },
@@ -43,8 +45,8 @@ export const BOAT = {
       ],
     },
     propeller: {
-      bm: 'Kipas', en: 'Propeller', ic: '🌀', stat: 'accel', unit: '×',
-      anchor: { pos: [-.56, .04, 0], rot: [0, 0, 0], scale: 1 }, size: [.03, .07, .07],
+      bm: 'Kipas', short: 'Kipas', en: 'Propeller', ic: '🌀', stat: 'accel', unit: '×',
+      anchor: { pos: [-.612, .02, 0], rot: [0, 0, 0], scale: 1 }, size: [.03, .07, .07],
       levels: [
         { bm: 'Kipas aluminium', en: 'Aluminium prop', price: 0, value: 1 },
         { bm: 'Kipas 4 bilah', en: '4-blade prop', price: 300, value: 1.15 },
@@ -53,17 +55,17 @@ export const BOAT = {
       ],
     },
     seat: {
-      bm: 'Tempat duduk', en: 'Seats', ic: '💺', stat: 'cooler', unit: 'ekor',
-      anchor: { pos: [-.07, .262, 0], rot: [0, 0, 0], scale: 1 }, size: [.05, .09, .13],
+      bm: 'Tempat duduk', short: 'Kerusi', en: 'Seats', ic: '💺', stat: 'cooler', unit: 'ekor',
+      anchor: { pos: [-.005, .178, -.018], rot: [0, 0, 0], scale: 1 }, size: [.058, .09, .15],
       levels: [
-        { bm: 'Sandar asal', en: 'Factory backrest', price: 0, value: 0, builtin: 'seatBack' },
+        { bm: 'Bangku asal', en: 'Factory bench', price: 0, value: 0, stock: true },
         { bm: 'Kerusi berkusyen', en: 'Cushioned seat', price: 400, value: 2 },
         { bm: 'Kerusi kapten', en: 'Captain seat', price: 1200, value: 4 },
         { bm: 'Kerusi pancing pusing', en: 'Swivel fishing chair', price: 2800, value: 6 },
       ],
     },
     fishing: {
-      bm: 'Peralatan pancing', en: 'Fishing gear', ic: '🎣', stat: 'line', unit: '×',
+      bm: 'Peralatan pancing', short: 'Pancing', en: 'Fishing gear', ic: '🎣', stat: 'line', unit: '×',
       anchor: { pos: [.12, .2, -.17], rot: [0, 0, 0], scale: 1 }, size: [.05, .1, .04],
       levels: [
         { bm: 'Pemegang joran', en: 'Rod holder', price: 0, value: 1 },
@@ -73,13 +75,13 @@ export const BOAT = {
       ],
     },
     accessory: {
-      bm: 'Aksesori', en: 'Accessories', ic: '🔦', stat: 'bite', unit: '×',
+      bm: 'Aksesori', short: 'Aksesori', en: 'Accessories', ic: '🔦', stat: 'bite', unit: '×',
       anchor: { pos: [.3, .21, 0], rot: [0, 0, 0], scale: 1 }, size: [.06, .06, .06],
       levels: [
         { bm: 'Pelampung keselamatan', en: 'Life ring', price: 0, value: 1 },
         { bm: 'Lampu sorot', en: 'Spotlight', price: 300, value: 1.05 },
-        { bm: 'Kanopi', en: 'Canopy', price: 1000, value: 1.1, offset: { pos: [-.35, .12, 0] } },
-        { bm: 'Menara radar', en: 'Radar arch', price: 2400, value: 1.15, offset: { pos: [-.42, .14, 0] } },
+        { bm: 'Kanopi', en: 'Canopy', price: 1000, value: 1.1, offset: { pos: [-.35, .16, 0] }, size: [.3, .03, .3] },
+        { bm: 'Menara radar', en: 'Radar arch', price: 2400, value: 1.15, offset: { pos: [-.6, .05, 0] }, size: [.05, .13, .3] },
       ],
     },
   },

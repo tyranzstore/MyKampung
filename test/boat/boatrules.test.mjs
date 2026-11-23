@@ -26,8 +26,8 @@ test('config is valid: six slots, four levels each, level 1 free, prices rise', 
   for (const s of SLOT_KEYS) { const L = BOAT.slots[s].levels; assert.equal(L.length, 4); assert.equal(L[0].price, 0); for (let i = 1; i < 4; i++) assert.ok(L[i].price > L[i - 1].price && L[i].value >= L[i - 1].value, s); }
 });
 test('validateConfig reports broken data', () => {
-  const c = structuredClone(BOAT); c.slots.engine.levels[1].price = -5; c.slots.seat.levels.pop(); c.slots.fishing.anchor.pos = [0, 0]; c.builtins.wheel.box = [[1, 1, 1], [0, 0, 0]]; c.slots.propeller.levels[2].requires = { nope: 2 };
-  const bad = R.validateConfig(c); for (const k of ['engine L2: price', 'seat: needs 4 levels', 'fishing: anchor', 'builtin wheel: box', 'propeller L3: requires nope 2']) assert.ok(bad.includes(k), k + ' in ' + bad.join(' | '));
+  const c = structuredClone(BOAT); c.slots.engine.levels[1].price = -5; c.slots.seat.levels.pop(); c.slots.fishing.anchor.pos = [0, 0]; c.builtins.wheel.box = [[1, 1, 1], [0, 0, 0]]; c.slots.accessory.levels[2].size = [1, 0, 1]; c.slots.propeller.levels[2].requires = { nope: 2 };
+  const bad = R.validateConfig(c); for (const k of ['engine L2: price', 'seat: needs 4 levels', 'fishing: anchor', 'builtin wheel: box', 'propeller L3: requires nope 2', 'accessory L3: size']) assert.ok(bad.includes(k), k + ' in ' + bad.join(' | '));
 });
 test('names are bilingual and no forbidden reference name is used', () => {
   const txt = JSON.stringify(BOAT); assert.ok(!/Geng Pekan|Pekan Pusaka|Kuala Pusaka|Dinar|Ah Seng|Arus Kencana|Anak Alur|Dinamo|Kenyir|Rajang|Semporna|Mekong|Amazon|Lofoten|Hokkaido/i.test(txt));
@@ -57,6 +57,22 @@ test('buy in order, with enough money, once', () => {
   assert.equal(R.canBuy(b, 'engine', 3, 99999).reason, 'order'); assert.equal(R.canBuy(b, 'engine', 1, 99999).reason, 'owned'); assert.equal(R.canBuy(b, 'engine', 5, 99999).reason, 'unknown'); assert.equal(R.canBuy(b, 'nope', 1, 9).reason, 'unknown');
   assert.ok(R.addOwned(b, 'engine', 2)); assert.ok(!R.addOwned(b, 'engine', 2)); assert.deepEqual(b.owned.engine, [1, 2]); assert.equal(R.highestOwned(b, 'engine'), 2);
   assert.equal(R.canBuy(b, 'engine', 2, 99999).reason, 'owned'); assert.equal(b.equipped.engine, 1); // buying does not install
+});
+
+test('purchase goes through the wallet once; a part the wallet already recorded is never charged again', () => {
+  const mk = (rm, owned = {}) => { const w = { rm, owned, log: [], balance: () => w.rm, owns: (k) => !!w.owned[k], spend(n, why, key) { if (key && w.owned[key]) return { ok: false, reason: 'owned' }; if (w.rm < n) return { ok: false, reason: 'funds', short: n - w.rm }; w.rm -= n; if (key) w.owned[key] = 1; w.log.push([n, key]); return { ok: true }; } }; return w; };
+  let b = fresh(), w = mk(1000);
+  assert.deepEqual(R.purchase(b, 'engine', 2, w), { ok: true, charged: 600 }); assert.equal(w.rm, 400); assert.deepEqual(b.owned.engine, [1, 2]);
+  assert.equal(R.purchase(b, 'engine', 2, w).reason, 'owned'); assert.equal(w.rm, 400);
+  assert.equal(R.purchase(b, 'engine', 3, w).reason, 'funds'); assert.equal(R.purchase(b, 'seat', 3, w).reason, 'order'); assert.equal(w.rm, 400); assert.equal(w.log.length, 1);
+  // save lost the boat slice but the wallet still remembers the payment: restore for free
+  b = fresh(); w = mk(0, { 'bot:engine:2': 1 }); assert.deepEqual(R.purchase(b, 'engine', 2, w), { ok: true, charged: 0, restored: true }); assert.deepEqual(b.owned.engine, [1, 2]); assert.equal(w.log.length, 0);
+});
+test('engines bought earlier in Simulator Pancing Laut are owned on the boat for free; the old upgrade fields stay', () => {
+  const S = { sea: { engine: 2, finder: 1, rod: 1 } }, b = R.botSave(S); assert.deepEqual(b.owned.engine, [1, 2, 3]); assert.equal(b.equipped.engine, 1); assert.deepEqual([S.sea.engine, S.sea.finder, S.sea.rod], [2, 1, 1]);
+  assert.equal(R.canBuy(b, 'engine', 3, 99999).reason, 'owned'); assert.equal(R.canBuy(b, 'engine', 4, 4500).ok, true);
+  S.sea.engine = 1; const S2 = { sea: { engine: 1 } }; assert.deepEqual(R.botSave(S2).owned.engine, [1, 2]); assert.deepEqual(R.botSave({ sea: { engine: 0 } }).owned.engine, [1]);
+  const S3 = { sea: { engine: 0 } }; R.botSave(S3); S3.sea.engine = 2; assert.deepEqual(R.botSave(S3).owned.engine, [1, 2, 3]); // bought later through the old menu
 });
 
 // ------------------------------------------------------------ install / remove / compatibility
@@ -89,19 +105,19 @@ test('stats follow the installed parts; no engine means paddling', () => {
 
 // ------------------------------------------------------------ layout and anchors
 test('layout: built-in, model and empty slots; hidden built-ins follow the configuration', () => {
-  const b = ownAll(fresh()); let L = R.layout(b); assert.equal(L.find((x) => x.slot === 'steering').kind, 'builtin'); assert.equal(L.find((x) => x.slot === 'seat').builtin, 'seatBack'); assert.equal(L.find((x) => x.slot === 'engine').model, 'bot/engine_lv1');
+  const b = ownAll(fresh()); let L = R.layout(b); assert.equal(L.find((x) => x.slot === 'steering').kind, 'builtin'); assert.equal(L.find((x) => x.slot === 'seat').kind, 'stock'); assert.equal(L.find((x) => x.slot === 'engine').model, 'bot/engine_lv1');
   assert.deepEqual(R.hiddenBuiltins(b), []);
   R.equip(b, 'steering', 2); R.unequip(b, 'seat'); L = R.layout(b); assert.equal(L.find((x) => x.slot === 'steering').model, 'bot/steering_lv2'); assert.equal(L.find((x) => x.slot === 'seat').kind, 'empty');
-  assert.deepEqual(R.hiddenBuiltins(b).sort(), ['seatBack', 'wheel']);
+  assert.deepEqual(R.hiddenBuiltins(b), ['wheel']); R.equip(b, 'seat', 3); assert.deepEqual(R.hiddenBuiltins(b), ['wheel']); // seats never hide hull parts
 });
 test('anchor = slot anchor + level offset + tuning; scale multiplies', () => {
-  const a = R.anchorFor('accessory', 3); assert.deepEqual(a.pos.map((v) => +v.toFixed(3)), [-.05, .33, 0]); assert.equal(a.scale, 1);
-  const t = R.anchorFor('engine', 2, { pos: [.01, 0, -.02], rot: [0, 90, 0], scale: 1.5 }); assert.deepEqual(t.pos.map((v) => +v.toFixed(3)), [-.51, .2, -.02]); assert.deepEqual(t.rot, [0, 90, 0]); assert.equal(t.scale, 1.5);
+  const a = R.anchorFor('accessory', 3); assert.deepEqual(a.pos.map((v) => +v.toFixed(3)), [-.05, .37, 0]); assert.equal(a.scale, 1);
+  const t = R.anchorFor('engine', 2, { pos: [.01, 0, -.02], rot: [0, 90, 0], scale: 1.5 }); assert.deepEqual(t.pos.map((v) => +v.toFixed(3)), [-.538, .02, -.02]); assert.deepEqual(t.rot, [0, 90, 0]); assert.equal(t.scale, 1.5);
   assert.equal(R.anchorFor('nope', 1), null);
-  const L = R.layout(ownAll(fresh()), { 'engine:1': { pos: [0, .05, 0] } }); assert.equal(+L.find((x) => x.slot === 'engine').anchor.pos[1].toFixed(3), .25);
+  const L = R.layout(ownAll(fresh()), { 'engine:1': { pos: [0, .05, 0] } }); assert.equal(+L.find((x) => x.slot === 'engine').anchor.pos[1].toFixed(3), .07);
 });
 test('every anchor sits on or near the hull (within its bounding box plus a margin)', () => {
-  for (const s of SLOT_KEYS) for (let lv = 1; lv <= 4; lv++) { const p = R.anchorFor(s, lv).pos; assert.ok(p[0] >= -.62 && p[0] <= .55 && p[1] >= 0 && p[1] <= .5 && Math.abs(p[2]) <= .22, `${s} L${lv} ${p}`); }
+  for (const s of SLOT_KEYS) for (let lv = 1; lv <= 4; lv++) { const p = R.anchorFor(s, lv).pos; assert.ok(p[0] >= -.66 && p[0] <= .55 && p[1] >= 0 && p[1] <= .5 && Math.abs(p[2]) <= .22, `${s} L${lv} ${p}`); }
 });
 
 // ------------------------------------------------------------ the hull file
@@ -119,12 +135,25 @@ test('hull splits into separate parts; the hull shell itself is the largest and 
   assert.equal(islands.reduce((a, i) => a + i.count, 0), 9858);
   for (const n of Object.keys(BOAT.builtins)) assert.ok(!R.builtinIslands(islands, n).includes(islands[0]), n);
 });
-test('built-in wheel and backrest are found as whole parts and can be hidden', () => {
-  const { islands } = hull(), wheel = R.builtinIslands(islands, 'wheel'), seat = R.builtinIslands(islands, 'seatBack');
+test('built-in wheel is found as whole parts and can be hidden; the console pad and rail are permanent', () => {
+  const { islands } = hull(), wheel = R.builtinIslands(islands, 'wheel');
   assert.equal(wheel.length, 3); assert.equal(wheel.reduce((a, i) => a + i.count, 0), 2132 + 192 + 116);
-  assert.equal(seat.length, 16); assert.equal(seat.reduce((a, i) => a + i.count, 0), 488 + 262 + 175 + 96 + 84 + 84 + 10 * 36);
-  const none = R.hiddenTriangles(islands, []), both = R.hiddenTriangles(islands, ['wheel', 'seatBack']); assert.equal(none.size, 0); assert.equal(both.size, 2440 + 1549);
-  const wset = new Set(wheel.flatMap((i) => [...i.tris])), sset = new Set(seat.flatMap((i) => [...i.tris])); for (const t of wset) assert.ok(!sset.has(t)); // no part is claimed twice
+  assert.equal(R.hiddenTriangles(islands, []).size, 0); assert.equal(R.hiddenTriangles(islands, ['wheel']).size, 2440);
+  assert.deepEqual(Object.keys(BOAT.builtins), ['wheel']);
+  const pad = islands.filter((i) => i.min[0] >= -.095 && i.max[0] <= -.045 && i.min[1] >= .255), claimed = new Set(wheel); assert.equal(pad.length, 16); for (const p of pad) assert.ok(!claimed.has(p));
+  for (let lv = 0; lv <= 4; lv++) { const b = ownAll(fresh()); b.equipped.seat = lv; const hid = R.hiddenTriangles(islands, R.hiddenBuiltins(b)); for (const p of pad) assert.ok(!hid.has(p.tris[0]), 'pad hidden at seat ' + lv); }
+});
+test('no default layout cuts into a visible built-in part, and installed parts do not share space', () => {
+  const { islands } = hull();
+  for (const s of SLOT_KEYS) for (let lv = 1; lv <= 4; lv++) { const b = ownAll(fresh()); b.equipped[s] = lv; assert.deepEqual(R.overlaps(islands, b), [], `${s} L${lv}`); assert.deepEqual(R.partClashes(b), [], `${s} L${lv}`); }
+  for (let lv = 1; lv <= 4; lv++) { const b = ownAll(fresh()); for (const s of SLOT_KEYS) b.equipped[s] = lv; assert.deepEqual(R.overlaps(islands, b), [], 'all L' + lv); assert.deepEqual(R.partClashes(b), [], 'all L' + lv); }
+});
+test('overlap check reports a part pushed into the console, and a factory wheel left under a new one', () => {
+  const { islands } = hull(), b = ownAll(fresh()); R.equip(b, 'seat', 2);
+  const bad = R.overlaps(islands, b, { 'seat:2': { pos: [-.07, 0, 0] } }); assert.equal(bad.length, 1); assert.equal(bad[0].slot, 'seat'); assert.ok(bad[0].parts >= 1);
+  const c = structuredClone(BOAT); c.builtins = {}; c.slots.steering.levels[0] = { ...c.slots.steering.levels[0], builtin: undefined, stock: true }; const b2 = ownAll(R.botSave({}, c)); b2.equipped.steering = 2;
+  assert.ok(R.overlaps(islands, b2, {}, c).some((o) => o.slot === 'steering')); // without hiding, the new wheel would sit inside the old one
+  assert.deepEqual(R.partClashes(ownAll(fresh()), { 'propeller:1': { pos: [.05, 0, 0] } }), [['engine', 'propeller']]);
 });
 test('findIslands on a tiny mesh: two triangles sharing an edge are one part, a far triangle is another', () => {
   const pos = [0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1, 0, 5, 5, 5, 6, 5, 5, 5, 6, 5, /* duplicate of vertex 1 (UV seam) */ 1, 0, 0], idx = [0, 1, 2, 7, 3, 2, 4, 5, 6];
